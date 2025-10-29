@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Invivo Datasets</title>
+    <style>
+      body { 
+        font-family: Arial, sans-serif; 
+        padding: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      h1 { 
+        margin-bottom: 1rem; 
+        color: #333; 
+      }
+      h2 {
+        margin-top: 2rem;
+        color: #555;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5rem;
+      }
+      .back-link { 
+        display: inline-block; 
+        margin-bottom: 1rem; 
+        color: #0066cc; 
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .back-link:hover { 
+        text-decoration: underline; 
+      }
+      .info-box {
+        background: #e7f3ff;
+        border-left: 4px solid #0066cc;
+        padding: 1rem;
+        margin: 1rem 0;
+      }
+      .dataset-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+      }
+      .dataset-description {
+        margin: 1rem 0;
+        line-height: 1.6;
+      }
+      .images-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 2rem;
+        margin: 2rem auto;
+      }
+      .image-container {
+        text-align: center;
+      }
+      .image-container img {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+      .image-title {
+        margin: 0.5rem 0;
+        font-weight: bold;
+        color: #555;
+      }
+      .controls {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        text-align: center;
+      }
+      .controls label {
+        font-weight: bold;
+        margin-right: 0.5rem;
+        color: #555;
+      }
+      .controls select {
+        padding: 0.5rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1em;
+        cursor: pointer;
+      }
+      .slider-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
+      .slider-container input[type="range"] {
+        width: 300px;
+        cursor: pointer;
+      }
+      .noise-level-display {
+        font-size: 1.2em;
+        font-weight: bold;
+        color: #333;
+        min-width: 150px;
+        text-align: left;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="back-link">← Back to Home</a>
+    
+    <h1>Invivo Datasets</h1>
+    
+    <div class="info-box">
+      <p><strong>About Invivo Datasets</strong></p>
+      <p>This is a nicely formatted block describing this page. Keep this.</p>
+    </div>
+
+    <div class="dataset-section">
+      <h2>Example Case: 000118</h2>
+      <div class="dataset-description">
+        <p>Below are the predicted T parameter maps for in vivo case 000118 using three different 
+            prediction methods.</p>
+        <p>This demonstration is intended to help understand how each method performs under varying 
+            noise levels. Note how CNN_IMAGENET seems to produce local blurring rather than noise
+            amplification. </p>
+      </div>
+      
+      <div class="controls">
+        <div class="slider-container">
+          <label for="noise-level">Noise Level:</label>
+          <input type="range" id="noise-level" min="0" max="9" value="0" step="1" oninput="updateImages()">
+          <span id="noise-level-display" class="noise-level-display">0 (No added noise)</span>
+        </div>
+      </div>
+      
+      <div id="images-container">
+        <div class="images-grid">
+          {% for method in methods %}
+          <div class="image-container">
+            <div class="image-title">
+              <div style="font-size: 1.1em;">T Parameter</div>
+              <div style="font-size: 0.9em;">{{ method }}</div>
+            </div>
+            <img id="t-image-{{ method }}" src="" alt="T Parameter - {{ method }}">
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      
+      <p id="error-message" style="text-align: center; color: #666; display: none;">Images not available for this noise level.</p>
+    </div>
+
+    <script>
+      // Store all images data from backend (organized by method, then noise level)
+      const allMethodsImages = {{ all_methods_images | tojson }};
+      const methods = {{ methods | tojson }};
+      
+      function updateImages() {
+        const noiseLevel = parseInt(document.getElementById('noise-level').value);
+        const noiseLevelDisplay = document.getElementById('noise-level-display');
+        const imagesContainer = document.getElementById('images-container');
+        const errorMessage = document.getElementById('error-message');
+        
+        // Update noise level display text
+        if (noiseLevel === 0) {
+          noiseLevelDisplay.textContent = '0 (No added noise)';
+        } else {
+          noiseLevelDisplay.textContent = noiseLevel.toString();
+        }
+        
+        let allImagesAvailable = true;
+        
+        // Update images for each method
+        methods.forEach(method => {
+          const methodImages = allMethodsImages[method];
+          const images = methodImages ? methodImages[noiseLevel] : null;
+          const tImage = document.getElementById(`t-image-${method}`);
+          
+          if (images && images.pred_T) {
+            tImage.src = `data:image/png;base64,${images.pred_T}`;
+          } else {
+            allImagesAvailable = false;
+          }
+        });
+        
+        if (allImagesAvailable) {
+          imagesContainer.style.display = 'block';
+          errorMessage.style.display = 'none';
+        } else {
+          imagesContainer.style.display = 'none';
+          errorMessage.style.display = 'block';
+        }
+      }
+      
+      // Handle mouse wheel events on images
+      function handleWheel(event) {
+        event.preventDefault();
+        const slider = document.getElementById('noise-level');
+        let currentLevel = parseInt(slider.value);
+        
+        // Wheel up (positive deltaY) increases noise level
+        // Wheel down (negative deltaY) decreases noise level
+        if (event.deltaY > 0) {
+          // Wheel up - increase noise level
+          currentLevel = Math.min(9, currentLevel + 1);
+        } else {
+          // Wheel down - decrease noise level
+          currentLevel = Math.max(0, currentLevel - 1);
+        }
+        
+        slider.value = currentLevel;
+        updateImages();
+      }
+      
+      // Initialize with noise level 0 on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        const slider = document.getElementById('noise-level');
+        slider.value = 0;
+        updateImages();
+        
+        // Add wheel event listeners to all images
+        const imagesContainer = document.getElementById('images-container');
+        imagesContainer.addEventListener('wheel', handleWheel, { passive: false });
+      });
+    </script>
+
+  </body>
+</html>

@@ -1,0 +1,470 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sample Datasets</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <style>
+      body { 
+        font-family: Arial, sans-serif; 
+        padding: 2rem;
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      h1 { 
+        margin-bottom: 1rem; 
+        color: #333; 
+      }
+      h2 {
+        margin-top: 2rem;
+        color: #555;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5rem;
+      }
+      .back-link { 
+        display: inline-block; 
+        margin-bottom: 1rem; 
+        color: #0066cc; 
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .back-link:hover { 
+        text-decoration: underline; 
+      }
+      .dataset-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+      }
+      .dataset-description {
+        margin: 1rem 0;
+        line-height: 1.6;
+      }
+      ul {
+        line-height: 1.8;
+      }
+      .info-box {
+        background: #e7f3ff;
+        border-left: 4px solid #0066cc;
+        padding: 1rem;
+        margin: 1rem 0;
+      }
+      .figure-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        text-align: center;
+      }
+      .figure-thumbnail {
+        max-width: 300px;
+        width: 100%;
+        height: auto;
+        border: 2px solid #dee2e6;
+        border-radius: 4px;
+        margin: 1rem 0;
+        cursor: pointer;
+        transition: transform 0.2s;
+      }
+      .figure-thumbnail:hover {
+        transform: scale(1.02);
+        border-color: #0066cc;
+      }
+      .figure-caption {
+        font-size: 0.9em;
+        color: #666;
+        font-style: italic;
+        margin-top: 0.5rem;
+      }
+      .images-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 2fr;
+        gap: 2rem;
+        margin: 2rem auto;
+        max-width: 1400px;
+        align-items: start;
+      }
+      .image-container {
+        text-align: center;
+      }
+      .image-container img {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+      .image-title {
+        margin: 0.5rem 0;
+        font-weight: bold;
+        color: #555;
+      }
+      .synth-container {
+        text-align: center;
+      }
+      .synth-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 0.3rem;
+      }
+      .synth-grid img {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .synth-grid-title {
+        text-align: center;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 0.5rem;
+        font-size: 0.95em;
+      }
+      .chart-container {
+        margin: 2rem auto;
+        max-width: 800px;
+        padding: 1.5rem;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+      .chart-title {
+        text-align: center;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 1rem;
+        font-size: 1.1em;
+      }
+      .image-wrapper {
+        position: relative;
+        display: inline-block;
+        cursor: none;
+      }
+      .image-wrapper img {
+        border-radius: 0;
+      }
+      .crosshair-overlay {
+        position: absolute;
+        pointer-events: none;
+        display: none;
+        z-index: 10;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+      }
+      .crosshair-vertical {
+        position: absolute;
+        width: 1px;
+        height: 100%;
+        background-color: red;
+        left: 50%;
+      }
+      .crosshair-horizontal {
+        position: absolute;
+        width: 100%;
+        height: 1px;
+        background-color: red;
+        top: 50%;
+      }
+      .coord-display {
+        text-align: center;
+        font-size: 0.85em;
+        color: #666;
+        margin-top: 0.5rem;
+        min-height: 1.2em;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="back-link">← Back to Home</a>
+    
+    <h1>Sample Datasets</h1>
+    
+    <div class="info-box">
+      <p><strong>About the Datasets</strong></p>
+      <p>This page provides information about the sample datasets used in the Prostate T2 Relaxometry project. 
+      These datasets demonstrate the application of convolutional neural networks for parametric mapping.</p>
+    </div>
+
+    <div class="figure-section">
+      <h2>Study Overview</h2>
+      <div class="dataset-description">
+        <p>Figure 1 from the paper illustrates the overall methodology and workflow for prostate T2 relaxometry using convolutional neural networks.</p>
+        <img src="/static/figure1.jpg" alt="Figure 1 from paper" class="figure-thumbnail" 
+             onclick="window.open('/static/figure1.jpg', '_blank')">
+        <p class="figure-caption">Click image to view full size</p>
+      </div>
+    </div>
+
+    <div class="dataset-section">
+      <h2>Example Case: 000001</h2>
+      <div class="dataset-description">
+        <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000001.</p>
+      </div>
+      {% if images %}
+      <div class="images-grid">
+        <div class="image-container">
+          <div class="image-title">
+            <div style="font-size: 1.1em;">S0 Parameter</div>
+            <div style="font-size: 0.9em;">Reference (Labels)</div>
+          </div>
+          <div class="image-wrapper" id="s0-param-wrapper">
+            <img src="data:image/png;base64,{{ images.label_S0 }}" alt="Reference S0" id="s0-param-image">
+            <div class="crosshair-overlay" id="s0-crosshair">
+              <div class="crosshair-vertical"></div>
+              <div class="crosshair-horizontal"></div>
+            </div>
+          </div>
+          <div class="coord-display" id="s0-coord-display"></div>
+        </div>
+        
+        <div class="image-container">
+          <div class="image-title">
+            <div style="font-size: 1.1em;">T Parameter</div>
+            <div style="font-size: 0.9em;">Reference (Labels)</div>
+          </div>
+          <div class="image-wrapper" id="t-param-wrapper">
+            <img src="data:image/png;base64,{{ images.label_T }}" alt="Reference T" id="t-param-image">
+            <div class="crosshair-overlay" id="t-crosshair">
+              <div class="crosshair-vertical"></div>
+              <div class="crosshair-horizontal"></div>
+            </div>
+          </div>
+          <div class="coord-display" id="coord-display"></div>
+        </div>
+
+        <div class="synth-container">
+          <div class="synth-grid-title">Synthetic Multi-Echo Input Images</div>
+          <div class="synth-grid">
+            {% for i in range(10) %}
+              {% set synth_key = 'synth_' ~ i %}
+              {% if images.get(synth_key) %}
+                <img src="data:image/png;base64,{{ images[synth_key] }}" alt="Synth {{ i }}">
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <div style="text-align: center; margin: 2rem 0 1rem 0; font-size: 1.2em;">
+        \[ S(t) = S_0 \cdot \exp(-t/T) \]
+      </div>
+      
+      <div class="chart-container">
+        <div class="chart-title" id="chart-title">Signal Decay Curve at Pixel (20, 20)</div>
+        <canvas id="signalChart"></canvas>
+      </div>
+      
+      {% else %}
+      <p style="text-align: center; color: #666;">Images not available for this case.</p>
+      {% endif %}
+    </div>
+
+    <script>
+      // Data from Flask backend
+      const synthValues = {{ synth_values | tojson }};
+      const synthArrays = {{ synth_arrays | tojson }};
+      const s0Array = {{ s0_array | tojson }};
+      const tArray = {{ t_array | tojson }};
+      
+      // Create echo time array (assuming 10 echo times from 0 to 9)
+      const echoTimes = Array.from({length: 10}, (_, i) => i);
+      
+      // Prepare initial data for Chart.js (pixel 20, 20)
+      const chartData = echoTimes.map((te, idx) => ({
+        x: te,
+        y: synthValues[idx]
+      }));
+      
+      // Create the chart
+      const ctx = document.getElementById('signalChart').getContext('2d');
+      const signalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Signal Intensity',
+            data: chartData,
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            showLine: true,
+            tension: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `TE: ${context.parsed.x}, Signal: ${context.parsed.y.toFixed(4)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: {
+                display: true,
+                text: 'Echo Time Index',
+                font: {
+                  size: 14,
+                  weight: 'bold'
+                }
+              },
+              grid: {
+                display: true,
+                color: 'rgba(0, 0, 0, 0.1)'
+              }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Signal Intensity',
+                font: {
+                  size: 14,
+                  weight: 'bold'
+                }
+              },
+              grid: {
+                display: true,
+                color: 'rgba(0, 0, 0, 0.1)'
+              },
+              beginAtZero: true,
+              min: 0,
+              max: 1.0
+              
+            }
+          }
+        }
+      });
+      
+      // Function to update chart with new pixel data
+      function updateChart(arrayX, arrayY) {
+        // Check bounds
+        if (arrayX < 0 || arrayY < 0 || !synthArrays[0] || 
+            arrayX >= synthArrays[0].length || arrayY >= synthArrays[0][0].length) {
+          return;
+        }
+        
+        // Extract values at array coordinates from all synth arrays
+        const newData = echoTimes.map((te, idx) => ({
+          x: te,
+          y: synthArrays[idx][arrayX][arrayY]
+        }));
+        
+        // Update chart data
+        signalChart.data.datasets[0].data = newData;
+        signalChart.update('none'); // 'none' mode for faster updates without animation
+        
+        // Calculate imgX and imgY for display (reverse the transformation)
+        const imgX = arrayY;
+        const imgY = arrayWidth - 1 - arrayX;
+        
+        // Update chart title
+        document.getElementById('chart-title').textContent = `Signal Decay Curve at Pixel (${imgX}, ${imgY})`;
+      }
+      
+      // Add mouse tracking to T parameter image
+      const s0ParamWrapper = document.getElementById('s0-param-wrapper');
+      const s0ParamImage = document.getElementById('s0-param-image');
+      const s0Crosshair = document.getElementById('s0-crosshair');
+      const s0CoordDisplay = document.getElementById('s0-coord-display');
+      
+      const tParamWrapper = document.getElementById('t-param-wrapper');
+      const tParamImage = document.getElementById('t-param-image');
+      const tCrosshair = document.getElementById('t-crosshair');
+      const coordDisplay = document.getElementById('coord-display');
+      
+      // Get actual array dimensions (after rotation/transpose)
+      const arrayHeight = synthArrays[0].length;  // Number of rows
+      const arrayWidth = synthArrays[0][0].length;  // Number of columns
+      
+      // Function to update crosshair position and chart
+      function handleMouseMove(e, sourceWrapper, sourceImage, sourceCrosshair, sourceCoordDisplay, linkedCrosshair, linkedCoordDisplay, linkedImage) {
+        const rect = sourceImage.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        // Convert to image array coordinates (0 to arrayWidth-1, 0 to arrayHeight-1)
+        const imgX = Math.floor((x / rect.width) * arrayWidth);
+        const imgY = Math.floor((y / rect.height) * arrayHeight);
+        
+        // Swap x and y, and flip x for array indexing
+        const arrayX = arrayWidth - 1 - imgY;
+        const arrayY = imgX;
+        
+        // Get S0 and T values at this pixel
+        const s0Value = s0Array[arrayX] && s0Array[arrayX][arrayY] !== undefined ? s0Array[arrayX][arrayY].toFixed(3) : 'N/A';
+        const tValue = tArray[arrayX] && tArray[arrayX][arrayY] !== undefined ? tArray[arrayX][arrayY].toFixed(3) : 'N/A';
+        
+        // Update source crosshair position and make it visible
+        const sourceVertical = sourceCrosshair.querySelector('.crosshair-vertical');
+        const sourceHorizontal = sourceCrosshair.querySelector('.crosshair-horizontal');
+        sourceVertical.style.left = x + 'px';
+        sourceHorizontal.style.top = y + 'px';
+        sourceCrosshair.style.display = 'block';
+        
+        // Calculate position for linked crosshair based on linked image dimensions
+        const linkedRect = linkedImage.getBoundingClientRect();
+        const linkedX = (imgX / arrayWidth) * linkedRect.width;
+        const linkedY = (imgY / arrayHeight) * linkedRect.height;
+        
+        // Update linked crosshair position and make it visible
+        const linkedVertical = linkedCrosshair.querySelector('.crosshair-vertical');
+        const linkedHorizontal = linkedCrosshair.querySelector('.crosshair-horizontal');
+        linkedVertical.style.left = linkedX + 'px';
+        linkedHorizontal.style.top = linkedY + 'px';
+        linkedCrosshair.style.display = 'block';
+        
+        // Update coordinate displays with pixel coordinates and values
+        s0CoordDisplay.textContent = `Pixel: (${imgX}, ${imgY}), S0: ${s0Value}`;
+        coordDisplay.textContent = `Pixel: (${imgX}, ${imgY}), T: ${tValue}`;
+        
+        // Update chart
+        updateChart(arrayX, arrayY);
+      }
+      
+      // S0 image mouse events
+      s0ParamWrapper.addEventListener('mousemove', function(e) {
+        handleMouseMove(e, s0ParamWrapper, s0ParamImage, s0Crosshair, s0CoordDisplay, tCrosshair, coordDisplay, tParamImage);
+      });
+      
+      s0ParamWrapper.addEventListener('mouseleave', function() {
+        s0CoordDisplay.textContent = '';
+        coordDisplay.textContent = '';
+        s0Crosshair.style.display = 'none';
+        tCrosshair.style.display = 'none';
+      });
+      
+      // T image mouse events
+      tParamWrapper.addEventListener('mousemove', function(e) {
+        handleMouseMove(e, tParamWrapper, tParamImage, tCrosshair, coordDisplay, s0Crosshair, s0CoordDisplay, s0ParamImage);
+      });
+      
+      tParamWrapper.addEventListener('mouseleave', function() {
+        coordDisplay.textContent = '';
+        s0CoordDisplay.textContent = '';
+        tCrosshair.style.display = 'none';
+        s0Crosshair.style.display = 'none';
+      });
+    </script>
+
+  </body>
+</html>
