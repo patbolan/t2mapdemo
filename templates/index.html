@@ -3,67 +3,128 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Parametric Image Cases</title>
+    <title>T2Map Demo — Home</title>
     <style>
-      body { font-family: Arial, sans-serif; padding: 2rem; }
-      h1 { margin-bottom: 1rem; color: #333; }
-      .case-list { list-style: none; padding: 0; }
-      .case-item { 
-        border: 1px solid #ddd; 
-        padding: 1rem; 
-        margin-bottom: 0.5rem; 
-        border-radius: 6px; 
-        background: #f9f9f9;
-        transition: background 0.2s;
+      :root{
+        --accent:#136f8f;
+        --muted:#6b7280;
+        --card:#ffffff;
+        --bg:#f6f9fb;
+        --max-width:1000px;
       }
-      .case-item:hover { background: #f0f0f0; }
-      .case-link { 
-        text-decoration: none; 
-        color: #0066cc; 
-        font-weight: bold; 
-        font-size: 1.1em;
+      html,body{height:100%;}
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        background:var(--bg);
+        margin:0; padding:2.25rem; display:flex; justify-content:center; align-items:flex-start;
       }
-      .case-link:hover { text-decoration: underline; }
-      .no-cases { 
-        color: #666; 
-        font-style: italic; 
-        padding: 2rem; 
-        text-align: center; 
-        border: 1px dashed #ccc; 
-        border-radius: 6px; 
+      .container{width:100%; max-width:var(--max-width);} 
+      header{margin-bottom:1.5rem}
+      h1{margin:0 0 .5rem; color:#0f172a}
+      p.lead{color:var(--muted); margin-top:0; margin-bottom:1.25rem}
+
+      .card-row{display:flex; gap:1rem; margin-bottom:1.25rem}
+      .card{
+        flex:1; min-width:200px; background:var(--card); padding:1.25rem; border-radius:10px;
+        box-shadow:0 6px 18px rgba(16,24,40,0.06); text-align:center; text-decoration:none; color:inherit;
+        display:flex; flex-direction:column; justify-content:center; align-items:center; transition:transform .15s ease, box-shadow .15s;
+      }
+      .card:hover{transform:translateY(-6px); box-shadow:0 12px 30px rgba(16,24,40,0.08)}
+      .card h2{margin:0; font-size:1.1rem; color:var(--accent)}
+      .card p{margin:.5rem 0 0; color:var(--muted); font-size:.95rem}
+      .card .btn{margin-top:1rem; display:inline-block; padding:.45rem .9rem; border-radius:6px; background:var(--accent); color:#fff; text-decoration:none}
+
+      .info{margin-top:1.5rem}
+      .info a{color:var(--accent)}
+      .info-card{
+        background:var(--card); padding:1.5rem; border-radius:10px;
+        box-shadow:0 6px 18px rgba(16,24,40,0.06);
+      }
+      .info-content{display:flex; gap:2rem; align-items:flex-start}
+      .info-text{flex:1; min-width:0}
+      .info-text h3{margin:0 0 1rem; color:var(--accent); font-size:1.2rem}
+      .info-text p{margin:0 0 1rem; color:var(--muted); line-height:1.6}
+      .info-text p:last-child{margin-bottom:0}
+      .info-video{flex:0 0 400px; max-width:400px}
+
+      .video-wrap{border-radius:8px; overflow:hidden; box-shadow:0 8px 20px rgba(2,6,23,0.06)}
+      .responsive-iframe{position:relative;padding-bottom:56.25%;height:0;overflow:hidden}
+      .responsive-iframe iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0}
+
+      @media (max-width:720px){
+        body{padding:1rem}
+        .card{flex-basis:100%}
+        .info-content{flex-direction:column}
+        .info-video{flex:none; max-width:100%}
       }
     </style>
   </head>
   <body>
-    <h1>Prostate T2 Relaxometry using Convolutional Neural Networks</h1>
-    <p>This page provides interactive demonstrations associated with this project. 
-    See the <a href="https://github.com/patbolan/prostate_t2map">git repository</a> for more details.
-    </p>
+    <div class="container">
+      <header>
+        <h1>Quantitative MRI with CNNs: Interactive Demo</h1>
 
-    <h1>Example Dataset</h1>
-    <p>
-      <a href="/sample_datasets" class="case-link">View Sample Datasets</a>
-    </p>
+        <p class="lead">This web page provides several interactive demonstrations to compliment 
+          the published manuscript <i>Improved Quantitative Parameter Estimation for Prostate T2 
+          Relaxometry Using Convolutional Neural Networks</i> 
+          [<a href="https://link.springer.com/article/10.1007/s10334-024-01186-3">Bolan et al., MAGMA 2024</a>].</p>
+        <p class="lead">This paper explores the use of neural 
+          networks to replace conventional curve fitting for quantitative MRI applications. 
+          The results show that a convolutional neural network (CNN) gave better quantitative 
+          performance, particularly in noisy regions, and demonstrated that this is a consequence 
+          of the improved representation of the noise distribution and the inherent regularization 
+          of the convolutional architecture. </p>  
+        <p class="lead">This webpage hosts three interactive demonstrations using the data in the 
+          paper to help improve intuition of how the CNNs perform. Click on the cards below to explore.</p>
+                
+      </header>
 
-    <h1>Invivo Datasets</h1>
-    <p>
-      <a href="/invivo_datasets" class="case-link">View Invivo Datasets</a>
-    </p>
+      <section aria-labelledby="demos">
+        <div class="card-row" id="demos">
+          <a class="card" href="/sample_datasets" title="Explore Datasets">
+            <h2>Explore Datasets</h2>
+            <p>Browse example datasets and individual cases to see synthetic and parametric images.</p>
+            <span class="btn">Open</span>
+          </a>
 
-    <h1>Parametric Image Cases</h1>
-    
-    {% if cases %}
-      <ul class="case-list">
-        {% for case in cases %}
-          <li class="case-item">
-            <a href="/case/{{ case }}" class="case-link">Case {{ case }}</a>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <div class="no-cases">
-        No cases found. Please add NIfTI files to the static directory.
-      </div>
-    {% endif %}
+          <a class="card" href="/compare_methods" title="Compare Methods">
+            <h2>Compare Methods</h2>
+            <p>Side-by-side comparisons of prediction methods and quantitative summaries.</p>
+            <span class="btn">Compare</span>
+          </a>
+
+          <a class="card" href="/invivo_datasets" title="In Vivo Performance">
+            <h2><i>In Vivo</i> Performance</h2>
+            <p>Investigate method performance on in vivo data across noise levels and cases.</p>
+            <span class="btn">View</span>
+          </a>
+        </div>
+      </section>
+
+      <section class="info">
+        <div class="info-card">
+          <div class="info-content">
+            <div class="info-text">
+              <h3>Learn More</h3>
+              <p>For more information see the original 
+                <a href="https://github.com/patbolan/prostate_t2map">project repository</a>, read the final 
+                <a href="https://link.springer.com/article/10.1007/s10334-024-01186-3">paper</a>, 
+                or the <a href="https://doi.org/10.1101/2023.01.11.23284194">preprint</a>. </p>
+              <p>For an quick overview, watch the demo video on the right (6 min). This was for a digital poster
+                presented at the 2023 annual meeting of the International Society for Magnetic Resonance (ISMRM).</p>
+
+            </div>
+            <div class="info-video">
+              <div class="video-wrap">
+                <div class="responsive-iframe">
+                  <!-- Embedded demo video (replace src with your actual video URL) -->
+                  <iframe src="https://www.youtube.com/embed/nTZPyVtEPmo" title="Demo video" allowfullscreen></iframe>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   </body>
 </html>

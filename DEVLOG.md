@@ -1,5 +1,6 @@
 
-Running. Activate local environment, then
+** Running the server**  
+Activate local environment, then
 python3 app.py # debug mode
 gunicorn --bind 0.0.0.0:5000 wsgi:app
 
@@ -26,7 +27,12 @@ docker rm test-container
 docker rmi my-app
 
 
-Notes:
+** Design **
+https://youtu.be/nTZPyVtEPmo is the video
+
+
+** Notes ***
 - App listens on 0.0.0.0:5000 by default when run directly.
 - Case 105 is the accordian man and rooster.
 - Case 001 is the airplane in the medarxiv paper. Fig 2 in Magma and Fig 3 in medarxiv
+
