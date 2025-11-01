@@ -6,6 +6,8 @@
     <title>Explore Datasets</title>
     <!-- Shared CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
+    <!-- Chart.js for interactive plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
       /* Page-specific styles */
       body { 
@@ -107,18 +109,22 @@
         gap: 0.2rem;
       }
       
-      /* Plot container placeholder */
+      /* Plot container for chart */
       .plot-container {
         flex: 1;
-        background: #d1d5db;
+        background: #ffffff;
+        border: 1px solid #dee2e6;
         border-radius: 8px;
         min-height: 400px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #6b7280;
-        font-size: 1.1rem;
-        font-weight: 500;
+        padding: 1rem;
+      }
+      
+      .chart-title {
+        text-align: center;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 1rem;
+        font-size: 1.1em;
       }
       
       /* Detailed text container */
@@ -170,6 +176,47 @@
         margin: 0.5rem 0;
         font-weight: bold;
         color: #555;
+      }
+      
+      /* Interactive image wrapper and crosshairs */
+      .image-wrapper {
+        position: relative;
+        display: inline-block;
+        cursor: none;
+      }
+      .image-wrapper img {
+        border-radius: 6px;
+      }
+      .crosshair-overlay {
+        position: absolute;
+        pointer-events: none;
+        display: none;
+        z-index: 10;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+      }
+      .crosshair-vertical {
+        position: absolute;
+        width: 1px;
+        height: 100%;
+        background-color: red;
+        left: 50%;
+      }
+      .crosshair-horizontal {
+        position: absolute;
+        width: 100%;
+        height: 1px;
+        background-color: red;
+        top: 50%;
+      }
+      .coord-display {
+        text-align: center;
+        font-size: 0.85em;
+        color: #666;
+        margin-top: 0.5rem;
+        min-height: 1.2em;
       }
       .imageseries-container {
         text-align: center;
@@ -258,7 +305,14 @@
                     <div style="font-size: 1.1em;">S0 Parameter</div>
                     <div style="font-size: 0.9em;" id="s0-subtitle"><!-- Dynamic Subtitle --></div>
                   </div>
-                  <img id="s0-image" src="" alt="">
+                  <div class="image-wrapper" id="s0-param-wrapper">
+                    <img id="s0-image" src="" alt="">
+                    <div class="crosshair-overlay" id="s0-crosshair">
+                      <div class="crosshair-vertical"></div>
+                      <div class="crosshair-horizontal"></div>
+                    </div>
+                  </div>
+                  <div class="coord-display" id="s0-coord-display"></div>
                 </div>
                 
                 <div class="image-container">
@@ -266,7 +320,14 @@
                     <div style="font-size: 1.1em;">T Parameter</div>
                     <div style="font-size: 0.9em;" id="t-subtitle"><!-- Dynamic Subtitle --></div>
                   </div>
-                  <img id="t-image" src="" alt="">
+                  <div class="image-wrapper" id="t-param-wrapper">
+                    <img id="t-image" src="" alt="">
+                    <div class="crosshair-overlay" id="t-crosshair">
+                      <div class="crosshair-vertical"></div>
+                      <div class="crosshair-horizontal"></div>
+                    </div>
+                  </div>
+                  <div class="coord-display" id="t-coord-display"></div>
                 </div>
                 </div>
 
@@ -285,7 +346,8 @@
             
             <div style="flex: 1; display: flex; flex-direction: column;">
               <div class="plot-container">
-                Plot Placeholder
+                <div class="chart-title" id="chart-title">Signal Decay Curve at Pixel (50, 50)</div>
+                <canvas id="signalChart"></canvas>
               </div>
               
               <div class="details-container">
@@ -348,6 +410,13 @@
       }
     };
 
+    // Global variables for chart and current dataset
+    let signalChart = null;
+    let currentDatasetKey = 'invivo';
+    let currentImageArrays = [];
+    let imageWidth = 0;
+    let imageHeight = 0;
+
     // Load image data from script tags
     function getImageData(datasetKey) {
       const scriptId = `${datasetKey}-data`;
@@ -358,8 +427,238 @@
       return null;
     }
 
+    // Decode base64 image to ImageData array
+    function decodeImageToArray(base64ImageData) {
+      return new Promise((resolve) => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
+        img.onload = () => {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          const imageData = ctx.getImageData(0, 0, img.width, img.height);
+          resolve(imageData);
+        };
+        img.src = `data:image/png;base64,${base64ImageData}`;
+      });
+    }
+
+    // Convert ImageData to normalized array (0-1 values)
+    function imageDataToNormalizedArray(imageData) {
+      const array = [];
+      for (let y = 0; y < imageData.height; y++) {
+        const row = [];
+        for (let x = 0; x < imageData.width; x++) {
+          const pixelIndex = (y * imageData.width + x) * 4;
+          const grayValue = imageData.data[pixelIndex]; // R channel of RGBA
+          row.push(grayValue / 255.0); // Normalize to 0-1
+        }
+        array.push(row);
+      }
+      return array;
+    }
+
+    // Initialize Chart.js
+    function initializeChart() {
+      const ctx = document.getElementById('signalChart').getContext('2d');
+      
+      // Create echo time array (10 echo times from 0 to 9)
+      const echoTimes = Array.from({length: 10}, (_, i) => i);
+      
+      // Initial data (will be updated when mouse moves)
+      const initialData = echoTimes.map(te => ({ x: te, y: 0 }));
+      
+      signalChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Signal Intensity',
+            data: initialData,
+            backgroundColor: 'rgba(54, 162, 235, 0.8)',
+            borderColor: 'rgba(54, 162, 235, 1)',
+            borderWidth: 2,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            showLine: true,
+            tension: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          aspectRatio: 2,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top'
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `TE: ${context.parsed.x}, Signal: ${context.parsed.y.toFixed(4)}`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              type: 'linear',
+              title: {
+                display: true,
+                text: 'Echo Time Index',
+                font: { size: 14, weight: 'bold' }
+              },
+              grid: { display: true, color: 'rgba(0, 0, 0, 0.1)' }
+            },
+            y: {
+              title: {
+                display: true,
+                text: 'Signal Intensity',
+                font: { size: 14, weight: 'bold' }
+              },
+              grid: { display: true, color: 'rgba(0, 0, 0, 0.1)' },
+              beginAtZero: true,
+              min: 0,
+              max: 1.0
+            }
+          }
+        }
+      });
+    }
+
+    // Update chart with new pixel data
+    function updateChart(imgX, imgY) {
+      if (!signalChart || currentImageArrays.length === 0 || 
+          imgX < 0 || imgY < 0 || 
+          imgX >= imageWidth || imgY >= imageHeight) {
+        return;
+      }
+      
+      // Extract values at coordinates from all image series
+      const echoTimes = Array.from({length: 10}, (_, i) => i);
+      const newData = echoTimes.map((te, idx) => {
+        if (idx < currentImageArrays.length && 
+            imgY < currentImageArrays[idx].length && 
+            imgX < currentImageArrays[idx][imgY].length) {
+          return { x: te, y: currentImageArrays[idx][imgY][imgX] };
+        }
+        return { x: te, y: 0 };
+      });
+      
+      // Update chart data
+      signalChart.data.datasets[0].data = newData;
+      signalChart.update('none');
+      
+      // Update chart title
+      document.getElementById('chart-title').textContent = `Signal Decay Curve at Pixel (${imgX}, ${imgY})`;
+    }
+
+    // Handle mouse movement on parameter images
+    function handleMouseMove(e, sourceWrapper, sourceImage, sourceCrosshair, sourceCoordDisplay, linkedCrosshair, linkedCoordDisplay, linkedImage) {
+      const rect = sourceImage.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Convert to image pixel coordinates
+      const imgX = Math.floor((x / rect.width) * imageWidth);
+      const imgY = Math.floor((y / rect.height) * imageHeight);
+      
+      // Update source crosshair position
+      const sourceVertical = sourceCrosshair.querySelector('.crosshair-vertical');
+      const sourceHorizontal = sourceCrosshair.querySelector('.crosshair-horizontal');
+      sourceVertical.style.left = x + 'px';
+      sourceHorizontal.style.top = y + 'px';
+      sourceCrosshair.style.display = 'block';
+      
+      // Update linked crosshair position
+      const linkedRect = linkedImage.getBoundingClientRect();
+      const linkedX = (imgX / imageWidth) * linkedRect.width;
+      const linkedY = (imgY / imageHeight) * linkedRect.height;
+      
+      const linkedVertical = linkedCrosshair.querySelector('.crosshair-vertical');
+      const linkedHorizontal = linkedCrosshair.querySelector('.crosshair-horizontal');
+      linkedVertical.style.left = linkedX + 'px';
+      linkedHorizontal.style.top = linkedY + 'px';
+      linkedCrosshair.style.display = 'block';
+      
+      // Update coordinate displays
+      document.getElementById('s0-coord-display').textContent = `Pixel: (${imgX}, ${imgY})`;
+      document.getElementById('t-coord-display').textContent = `Pixel: (${imgX}, ${imgY})`;
+      
+      // Update chart
+      updateChart(imgX, imgY);
+    }
+
+    // Set up mouse event listeners for interactive images
+    function setupMouseListeners() {
+      const s0Wrapper = document.getElementById('s0-param-wrapper');
+      const s0Image = document.getElementById('s0-image');
+      const s0Crosshair = document.getElementById('s0-crosshair');
+      const s0CoordDisplay = document.getElementById('s0-coord-display');
+      
+      const tWrapper = document.getElementById('t-param-wrapper');
+      const tImage = document.getElementById('t-image');
+      const tCrosshair = document.getElementById('t-crosshair');
+      const tCoordDisplay = document.getElementById('t-coord-display');
+      
+      if (s0Wrapper && tWrapper) {
+        // S0 image mouse events
+        s0Wrapper.addEventListener('mousemove', function(e) {
+          handleMouseMove(e, s0Wrapper, s0Image, s0Crosshair, s0CoordDisplay, tCrosshair, tCoordDisplay, tImage);
+        });
+        
+        s0Wrapper.addEventListener('mouseleave', function() {
+          s0CoordDisplay.textContent = '';
+          tCoordDisplay.textContent = '';
+          s0Crosshair.style.display = 'none';
+          tCrosshair.style.display = 'none';
+        });
+        
+        // T image mouse events
+        tWrapper.addEventListener('mousemove', function(e) {
+          handleMouseMove(e, tWrapper, tImage, tCrosshair, tCoordDisplay, s0Crosshair, s0CoordDisplay, s0Image);
+        });
+        
+        tWrapper.addEventListener('mouseleave', function() {
+          tCoordDisplay.textContent = '';
+          s0CoordDisplay.textContent = '';
+          tCrosshair.style.display = 'none';
+          s0Crosshair.style.display = 'none';
+        });
+      }
+    }
+
+    // Process image series data for current dataset
+    async function processImageSeries(images) {
+      currentImageArrays = [];
+      
+      // Decode all image_* arrays
+      for (let i = 0; i < 10; i++) {
+        const imageKey = `image_${i}`;
+        if (images[imageKey]) {
+          try {
+            const imageData = await decodeImageToArray(images[imageKey]);
+            const normalizedArray = imageDataToNormalizedArray(imageData);
+            currentImageArrays.push(normalizedArray);
+            
+            // Set dimensions from first image
+            if (i === 0) {
+              imageWidth = imageData.width;
+              imageHeight = imageData.height;
+            }
+          } catch (error) {
+            console.error(`Error processing image_${i}:`, error);
+            currentImageArrays.push([]);
+          }
+        }
+      }
+    }
+
     // Function to update the content based on selected dataset
-    function updateContent(datasetKey) {
+    async function updateContent(datasetKey) {
+      currentDatasetKey = datasetKey;
       const config = datasetConfig[datasetKey];
       const images = getImageData(datasetKey);
       
@@ -397,7 +696,7 @@
         
         // Update image series grid images
         const imageseriesGrid = document.getElementById('imageseries-grid');
-        imageseriesGrid.innerHTML = ''; // Clear existing images
+        imageseriesGrid.innerHTML = '';
         
         for (let i = 0; i < 10; i++) {
           const imageKey = `image_${i}`;
@@ -408,10 +707,18 @@
             imageseriesGrid.appendChild(img);
           }
         }
+        
+        // Process image series for interactive plotting
+        await processImageSeries(images);
+        
+        // Setup mouse listeners after images are loaded
+        setTimeout(setupMouseListeners, 100);
+        
       } else {
         // Hide images container, show no-images message
         imagesContainer.style.display = 'none';
         noImagesMessage.style.display = 'block';
+        currentImageArrays = [];
       }
     }
 
@@ -431,8 +738,9 @@
       });
     });
 
-    // Initialize with the first dataset (invivo)
+    // Initialize everything when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
+      initializeChart();
       updateContent('invivo');
     });
     </script>
