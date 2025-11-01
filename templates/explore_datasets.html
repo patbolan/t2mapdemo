@@ -85,12 +85,76 @@
       
       /* Images Grid */
       .images-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr 2fr;
+        display: flex;
         gap: 2rem;
         margin: 2rem auto;
         max-width: 1400px;
         align-items: start;
+      }
+      
+      /* Left side containers */
+      .left-container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+      
+      /* Maps container for S0 and T images */
+      .maps-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.2rem;
+      }
+      
+      /* Plot container placeholder */
+      .plot-container {
+        flex: 1;
+        background: #d1d5db;
+        border-radius: 8px;
+        min-height: 400px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6b7280;
+        font-size: 1.1rem;
+        font-weight: 500;
+      }
+      
+      /* Detailed text container */
+      .details-container {
+        flex: 1;
+        background: #d1d5db;
+        border-radius: 8px;
+        padding: 0.5rem;
+        margin-top: 1rem;
+        line-height: 1.6;
+        color: #555;
+      }
+      
+      /* Arrow container for process indication */
+      .arrow-container {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+        padding: 0.00rem 0;
+        gap: 0.75rem;
+      }
+      
+      .arrow-container .arrow {
+        font-size: 3rem;
+        font-weight: 900;
+        color: var(--accent);
+        line-height: 1;
+      }
+      
+      .arrow-container .arrow-text {
+        font-size: 0.9rem;
+        font-weight: bold;
+        color: var(--accent);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
       }
       .image-container {
         text-align: center;
@@ -107,23 +171,23 @@
         font-weight: bold;
         color: #555;
       }
-      .synth-container {
+      .imageseries-container {
         text-align: center;
       }
-      .synth-grid {
+      .imageseries-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
         grid-template-rows: repeat(2, 1fr);
         gap: 0.3rem;
       }
-      .synth-grid img {
+      .imageseries-grid img {
         width: 100%;
         height: auto;
         border: 1px solid #ddd;
         border-radius: 4px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       }
-      .synth-grid-title {
+      .imageseries-grid-title {
         text-align: center;
         font-weight: bold;
         color: #555;
@@ -146,8 +210,14 @@
           border-bottom-color: transparent;
         }
         .images-grid {
-          grid-template-columns: 1fr;
+          flex-direction: column;
           gap: 1rem;
+        }
+        .maps-container {
+          grid-template-columns: 1fr;
+        }
+        .plot-container {
+          min-height: 200px;
         }
       }
     </style>
@@ -172,150 +242,198 @@
         <li><button class="tab-btn" data-tab="random">Random Synthetic</button></li>
       </ul>
 
-      <!-- Tab Content: In Vivo -->
-      <div class="tab-content active" id="tab-invivo">
+      <!-- Tab Content: Single Dynamic Template -->
+      <div class="tab-content active" id="dynamic-content">
         <div class="dataset-card">
-          <h2 class="dataset-title">In Vivo Dataset</h2>
+          <h2 class="dataset-title" id="dataset-title"><!-- Dynamic Title --></h2>
           <div class="dataset-description">
-            <p>Below are the reference parametric maps for S0 and T parameters from an in vivo case (000198).</p>
+            <p id="dataset-description"><!-- Dynamic Description --></p>
           </div>
-            {% if invivo_images %}
-            <div class="images-grid">
-              <div class="image-container">
-                <div class="image-title">
-                  <div style="font-size: 1.1em;">S0 Parameter</div>
-                  <div style="font-size: 0.9em;">Reference (Labels)</div>
+          
+          <div class="images-grid" id="images-container" style="display: none;">
+            <div class="left-container">
+              <div class="maps-container">
+                <div class="image-container">
+                  <div class="image-title">
+                    <div style="font-size: 1.1em;">S0 Parameter</div>
+                    <div style="font-size: 0.9em;" id="s0-subtitle"><!-- Dynamic Subtitle --></div>
+                  </div>
+                  <img id="s0-image" src="" alt="">
                 </div>
-                <img src="data:image/png;base64,{{ invivo_images.label_S0 }}" alt="In Vivo S0">
-              </div>
-              
-              <div class="image-container">
-                <div class="image-title">
-                  <div style="font-size: 1.1em;">T Parameter</div>
-                  <div style="font-size: 0.9em;">Reference (Labels)</div>
+                
+                <div class="image-container">
+                  <div class="image-title">
+                    <div style="font-size: 1.1em;">T Parameter</div>
+                    <div style="font-size: 0.9em;" id="t-subtitle"><!-- Dynamic Subtitle --></div>
+                  </div>
+                  <img id="t-image" src="" alt="">
                 </div>
-                <img src="data:image/png;base64,{{ invivo_images.label_T }}" alt="In Vivo T">
-              </div>
+                </div>
 
-              <div class="synth-container">
-                <div class="synth-grid-title">Multi-Echo Image Series</div>
-                <div class="synth-grid">
-                  {% for i in range(10) %}
-                    {% set image_key = 'image_' ~ i %}
-                    {% if invivo_images.get(image_key) %}
-                      <img src="data:image/png;base64,{{ invivo_images[image_key] }}" alt="Echo {{ i }}">
-                    {% endif %}
-                  {% endfor %}
+                <div class="arrow-container">
+                  <div class="arrow" id="arrow-symbol"><!-- Dynamic Arrow --></div>
+                  <div class="arrow-text" id="arrow-text"><!-- Dynamic Text --></div>
+                </div>
+
+              <div class="imageseries-container">
+                <div class="imageseries-grid-title" id="imageseries-title"><!-- Dynamic Image Series Title --></div>
+                <div class="imageseries-grid" id="imageseries-grid">
+                  <!-- Dynamic echo images -->
                 </div>
               </div>
             </div>
-            {% else %}
-            <p style="text-align: center; color: #666;">In vivo images not available.</p>
-            {% endif %}
-        </div>
-      </div>
-
-      <!-- Tab Content: ImageNet -->
-      <div class="tab-content" id="tab-imagenet">
-        <div class="dataset-card">
-          <h2 class="dataset-title">ImageNet Synthetic Dataset</h2>
-          <div class="dataset-description">
-            <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using ImageNet-based synthetic data.</p>
-          </div>
-            {% if imagenet_images %}
-            <div class="images-grid">
-              <div class="image-container">
-                <div class="image-title">
-                  <div style="font-size: 1.1em;">S0 Parameter</div>
-                  <div style="font-size: 0.9em;">Ground Truth</div>
-                </div>
-                <img src="data:image/png;base64,{{ imagenet_images.label_S0 }}" alt="ImageNet S0">
+            
+            <div style="flex: 1; display: flex; flex-direction: column;">
+              <div class="plot-container">
+                Plot Placeholder
               </div>
               
-              <div class="image-container">
-                <div class="image-title">
-                  <div style="font-size: 1.1em;">T Parameter</div>
-                  <div style="font-size: 0.9em;">Ground Truth</div>
-                </div>
-                <img src="data:image/png;base64,{{ imagenet_images.label_T }}" alt="ImageNet T">
-              </div>
-
-              <div class="synth-container">
-                <div class="synth-grid-title">Synthetic Multi-Echo Series</div>
-                <div class="synth-grid">
-                  {% for i in range(10) %}
-                    {% set image_key = 'image_' ~ i %}
-                    {% if imagenet_images.get(image_key) %}
-                      <img src="data:image/png;base64,{{ imagenet_images[image_key] }}" alt="Synth {{ i }}">
-                    {% endif %}
-                  {% endfor %}
-                </div>
+              <div class="details-container">
+                <p id="details-text">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</p>
               </div>
             </div>
-            {% else %}
-            <p style="text-align: center; color: #666;">ImageNet images not available.</p>
-            {% endif %}
-        </div>
-      </div>
-
-      <!-- Tab Content: Random -->
-      <div class="tab-content" id="tab-random">
-        <div class="dataset-card">
-          <h2 class="dataset-title">Random Synthetic Dataset</h2>
-          <div class="dataset-description">
-            <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using randomly generated synthetic data.</p>
           </div>
-            {% if urand_images %}
-            <div class="images-grid">
-              <div class="image-container">
-                <div class="image-title">
-                  <div style="font-size: 1.1em;">S0 Parameter</div>
-                  <div style="font-size: 0.9em;">Ground Truth</div>
-                </div>
-                <img src="data:image/png;base64,{{ urand_images.label_S0 }}" alt="Random S0">
-              </div>
-              
-              <div class="image-container">
-                <div class="image-title">
-                  <div style="font-size: 1.1em;">T Parameter</div>
-                  <div style="font-size: 0.9em;">Ground Truth</div>
-                </div>
-                <img src="data:image/png;base64,{{ urand_images.label_T }}" alt="Random T">
-              </div>
-
-              <div class="synth-container">
-                <div class="synth-grid-title">Synthetic Multi-Echo Series</div>
-                <div class="synth-grid">
-                  {% for i in range(10) %}
-                    {% set image_key = 'image_' ~ i %}
-                    {% if urand_images.get(image_key) %}
-                      <img src="data:image/png;base64,{{ urand_images[image_key] }}" alt="Random {{ i }}">
-                    {% endif %}
-                  {% endfor %}
-                </div>
-              </div>
-            </div>
-            {% else %}
-            <p style="text-align: center; color: #666;">Random synthetic images not available.</p>
-            {% endif %}
+          
+          <p id="no-images-message" style="text-align: center; color: #666; display: none;">Images not available.</p>
         </div>
       </div>
     </div>
 
+    <!-- Image data injection -->
+    <script id="invivo-data" type="application/json">{% if invivo_images %}{{ invivo_images | tojson | safe }}{% else %}null{% endif %}</script>
+    <script id="imagenet-data" type="application/json">{% if imagenet_images %}{{ imagenet_images | tojson | safe }}{% else %}null{% endif %}</script>
+    <script id="random-data" type="application/json">{% if urand_images %}{{ urand_images | tojson | safe }}{% else %}null{% endif %}</script>
+
     <script>
-    // Simple tab switching functionality
+    // Dataset configuration
+    const datasetConfig = {
+      invivo: {
+        title: 'In Vivo Dataset',
+        description: 'Below are the reference parametric maps for S0 and T parameters from an in vivo case (000198).',
+        s0Subtitle: 'Reference (Labels)',
+        tSubtitle: 'Reference (Labels)',
+        imageseriesTitle: 'Multi-Echo Image Series',
+        s0Alt: 'In Vivo S0',
+        tAlt: 'In Vivo T',
+        echoAltPrefix: 'Echo',
+        arrowDirection: 'up',
+        arrowText: 'curve fit',
+        detailsText: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.'
+      },
+      imagenet: {
+        title: 'ImageNet Synthetic Dataset',
+        description: 'Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using ImageNet-based synthetic data.',
+        s0Subtitle: 'Ground Truth',
+        tSubtitle: 'Ground Truth',
+        imageseriesTitle: 'Synthetic Multi-Echo Series',
+        s0Alt: 'ImageNet S0',
+        tAlt: 'ImageNet T',
+        echoAltPrefix: 'Synth',
+        arrowDirection: 'down',
+        arrowText: 'synthesize',
+        detailsText: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium.'
+      },
+      random: {
+        title: 'Random Synthetic Dataset',
+        description: 'Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using randomly generated synthetic data.',
+        s0Subtitle: 'Ground Truth',
+        tSubtitle: 'Ground Truth',
+        imageseriesTitle: 'Synthetic Multi-Echo Series',
+        s0Alt: 'Random S0',
+        tAlt: 'Random T',
+        echoAltPrefix: 'Random',
+        arrowDirection: 'down',
+        arrowText: 'synthesize',
+        detailsText: 'But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium.'
+      }
+    };
+
+    // Load image data from script tags
+    function getImageData(datasetKey) {
+      const scriptId = `${datasetKey}-data`;
+      const script = document.getElementById(scriptId);
+      if (script && script.textContent.trim() !== 'null') {
+        return JSON.parse(script.textContent);
+      }
+      return null;
+    }
+
+    // Function to update the content based on selected dataset
+    function updateContent(datasetKey) {
+      const config = datasetConfig[datasetKey];
+      const images = getImageData(datasetKey);
+      
+      // Update text content
+      document.getElementById('dataset-title').textContent = config.title;
+      document.getElementById('dataset-description').textContent = config.description;
+      document.getElementById('s0-subtitle').textContent = config.s0Subtitle;
+      document.getElementById('t-subtitle').textContent = config.tSubtitle;
+      document.getElementById('imageseries-title').textContent = config.imageseriesTitle;
+      document.getElementById('details-text').textContent = config.detailsText;
+      
+      // Update arrow direction and text
+      const arrowSymbol = document.getElementById('arrow-symbol');
+      const arrowText = document.getElementById('arrow-text');
+      arrowSymbol.textContent = config.arrowDirection === 'up' ? '↑' : '↓';
+      arrowText.textContent = config.arrowText;
+      
+      const imagesContainer = document.getElementById('images-container');
+      const noImagesMessage = document.getElementById('no-images-message');
+      
+      if (images) {
+        // Show images container, hide no-images message
+        imagesContainer.style.display = 'flex';
+        noImagesMessage.style.display = 'none';
+        
+        // Update S0 and T images
+        const s0Image = document.getElementById('s0-image');
+        const tImage = document.getElementById('t-image');
+        
+        s0Image.src = `data:image/png;base64,${images.label_S0}`;
+        s0Image.alt = config.s0Alt;
+        
+        tImage.src = `data:image/png;base64,${images.label_T}`;
+        tImage.alt = config.tAlt;
+        
+        // Update image series grid images
+        const imageseriesGrid = document.getElementById('imageseries-grid');
+        imageseriesGrid.innerHTML = ''; // Clear existing images
+        
+        for (let i = 0; i < 10; i++) {
+          const imageKey = `image_${i}`;
+          if (images[imageKey]) {
+            const img = document.createElement('img');
+            img.src = `data:image/png;base64,${images[imageKey]}`;
+            img.alt = `${config.echoAltPrefix} ${i}`;
+            imageseriesGrid.appendChild(img);
+          }
+        }
+      } else {
+        // Hide images container, show no-images message
+        imagesContainer.style.display = 'none';
+        noImagesMessage.style.display = 'block';
+      }
+    }
+
+    // Tab switching functionality
     document.querySelectorAll('.tab-btn').forEach(button => {
       button.addEventListener('click', () => {
         const tabId = button.getAttribute('data-tab');
         
-        // Remove active class from all tabs and content
+        // Remove active class from all tabs
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
         
-        // Add active class to clicked tab and corresponding content
+        // Add active class to clicked tab
         button.classList.add('active');
-        document.getElementById(`tab-${tabId}`).classList.add('active');
+        
+        // Update content based on selected tab
+        updateContent(tabId);
       });
+    });
+
+    // Initialize with the first dataset (invivo)
+    document.addEventListener('DOMContentLoaded', () => {
+      updateContent('invivo');
     });
     </script>
 
