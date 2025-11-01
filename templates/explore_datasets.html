@@ -227,6 +227,12 @@
         grid-template-rows: repeat(2, 1fr);
         gap: 0.3rem;
       }
+      
+      .imageseries-grid .image-wrapper {
+        position: relative;
+        cursor: crosshair;
+      }
+      
       .imageseries-grid img {
         width: 100%;
         height: auto;
@@ -414,8 +420,13 @@
     let signalChart = null;
     let currentDatasetKey = 'invivo';
     let currentImageArrays = [];
+    let currentS0Array = [];
+    let currentTArray = [];
     let imageWidth = 0;
     let imageHeight = 0;
+    
+    // Configuration flag for image series interactivity
+    let enableImageSeriesInteractivity = true;
 
     // Load image data from script tags
     function getImageData(datasetKey) {
@@ -555,8 +566,18 @@
       document.getElementById('chart-title').textContent = `Signal Decay Curve at Pixel (${imgX}, ${imgY})`;
     }
 
-    // Handle mouse movement on parameter images
-    function handleMouseMove(e, sourceWrapper, sourceImage, sourceCrosshair, sourceCoordDisplay, linkedCrosshair, linkedCoordDisplay, linkedImage) {
+    // Get pixel value from array at coordinates
+    function getPixelValue(imageArray, x, y) {
+      if (imageArray.length === 0 || 
+          y < 0 || y >= imageArray.length || 
+          x < 0 || x >= imageArray[0].length) {
+        return null;
+      }
+      return imageArray[y][x];
+    }
+
+    // Handle mouse movement on any interactive image
+    function handleMouseMove(e, sourceWrapper, sourceImage, allCrosshairs, allCoordDisplays) {
       const rect = sourceImage.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -565,34 +586,77 @@
       const imgX = Math.floor((x / rect.width) * imageWidth);
       const imgY = Math.floor((y / rect.height) * imageHeight);
       
-      // Update source crosshair position
-      const sourceVertical = sourceCrosshair.querySelector('.crosshair-vertical');
-      const sourceHorizontal = sourceCrosshair.querySelector('.crosshair-horizontal');
-      sourceVertical.style.left = x + 'px';
-      sourceHorizontal.style.top = y + 'px';
-      sourceCrosshair.style.display = 'block';
+      // Only update S0 and T crosshairs (first two in the array)
+      const parameterCrosshairs = allCrosshairs.slice(0, 2);
+      parameterCrosshairs.forEach((crosshair, index) => {
+        if (crosshair) {
+          const targetImage = index === 0 ? 
+            document.getElementById('s0-image') : 
+            document.getElementById('t-image');
+          
+          if (targetImage) {
+            const targetRect = targetImage.getBoundingClientRect();
+            const targetX = (imgX / imageWidth) * targetRect.width;
+            const targetY = (imgY / imageHeight) * targetRect.height;
+            
+            const vertical = crosshair.querySelector('.crosshair-vertical');
+            const horizontal = crosshair.querySelector('.crosshair-horizontal');
+            vertical.style.left = targetX + 'px';
+            horizontal.style.top = targetY + 'px';
+            crosshair.style.display = 'block';
+          }
+        }
+      });
       
-      // Update linked crosshair position
-      const linkedRect = linkedImage.getBoundingClientRect();
-      const linkedX = (imgX / imageWidth) * linkedRect.width;
-      const linkedY = (imgY / imageHeight) * linkedRect.height;
+      // Get pixel values for S0 and T images
+      const s0Value = getPixelValue(currentS0Array, imgX, imgY);
+      const tValue = getPixelValue(currentTArray, imgX, imgY);
       
-      const linkedVertical = linkedCrosshair.querySelector('.crosshair-vertical');
-      const linkedHorizontal = linkedCrosshair.querySelector('.crosshair-horizontal');
-      linkedVertical.style.left = linkedX + 'px';
-      linkedHorizontal.style.top = linkedY + 'px';
-      linkedCrosshair.style.display = 'block';
+      // Update coordinate displays with pixel coordinates and values
+      const s0Display = document.getElementById('s0-coord-display');
+      const tDisplay = document.getElementById('t-coord-display');
       
-      // Update coordinate displays
-      document.getElementById('s0-coord-display').textContent = `Pixel: (${imgX}, ${imgY})`;
-      document.getElementById('t-coord-display').textContent = `Pixel: (${imgX}, ${imgY})`;
-      
+      if (s0Display) {
+        const s0Text = s0Value !== null ? 
+          `(${imgX}, ${imgY}): ${(s0Value * 255).toFixed(0)}` : 
+          `(${imgX}, ${imgY}): --`;
+        s0Display.textContent = s0Text;
+      } 
+      if (tDisplay) {
+        const tText = tValue !== null ? 
+          `(${imgX}, ${imgY}): ${(tValue * 255).toFixed(0)}` : 
+          `(${imgX}, ${imgY}): --`;
+        tDisplay.textContent = tText;
+      }
       // Update chart
       updateChart(imgX, imgY);
     }
+    
+    // Hide all crosshairs and clear coordinate displays
+    function hideAllCrosshairs(allCrosshairs, allCoordDisplays) {
+      // Only hide S0 and T crosshairs (first two in the array)
+      const parameterCrosshairs = allCrosshairs.slice(0, 2);
+      parameterCrosshairs.forEach(crosshair => {
+        if (crosshair) {
+          crosshair.style.display = 'none';
+        }
+      });
+      
+      // Set placeholder text to maintain layout
+      const s0Display = document.getElementById('s0-coord-display');
+      const tDisplay = document.getElementById('t-coord-display');
+      
+      if (s0Display) {
+        s0Display.textContent = ' '; // Single space placeholder
+      }
+      if (tDisplay) {
+        tDisplay.textContent = ' '; // Single space placeholder
+      }
+    }
 
-    // Set up mouse event listeners for interactive images
+    // Set up mouse event listeners for all interactive images
     function setupMouseListeners() {
+      // Get parameter image elements
       const s0Wrapper = document.getElementById('s0-param-wrapper');
       const s0Image = document.getElementById('s0-image');
       const s0Crosshair = document.getElementById('s0-crosshair');
@@ -603,29 +667,42 @@
       const tCrosshair = document.getElementById('t-crosshair');
       const tCoordDisplay = document.getElementById('t-coord-display');
       
+      // Get all image series elements
+      const imageSeriesWrappers = document.querySelectorAll('.imageseries-grid .image-wrapper');
+      
+      // Collect only parameter crosshairs and coordinate displays
+      const allCrosshairs = [s0Crosshair, tCrosshair];
+      const allCoordDisplays = [s0CoordDisplay, tCoordDisplay];
+      
       if (s0Wrapper && tWrapper) {
-        // S0 image mouse events
-        s0Wrapper.addEventListener('mousemove', function(e) {
-          handleMouseMove(e, s0Wrapper, s0Image, s0Crosshair, s0CoordDisplay, tCrosshair, tCoordDisplay, tImage);
+        // Parameter image mouse events
+        [s0Wrapper, tWrapper].forEach(wrapper => {
+          const image = wrapper.querySelector('img');
+          
+          wrapper.addEventListener('mousemove', function(e) {
+            handleMouseMove(e, wrapper, image, allCrosshairs, allCoordDisplays);
+          });
+          
+          wrapper.addEventListener('mouseleave', function() {
+            hideAllCrosshairs(allCrosshairs, allCoordDisplays);
+          });
         });
-        
-        s0Wrapper.addEventListener('mouseleave', function() {
-          s0CoordDisplay.textContent = '';
-          tCoordDisplay.textContent = '';
-          s0Crosshair.style.display = 'none';
-          tCrosshair.style.display = 'none';
-        });
-        
-        // T image mouse events
-        tWrapper.addEventListener('mousemove', function(e) {
-          handleMouseMove(e, tWrapper, tImage, tCrosshair, tCoordDisplay, s0Crosshair, s0CoordDisplay, s0Image);
-        });
-        
-        tWrapper.addEventListener('mouseleave', function() {
-          tCoordDisplay.textContent = '';
-          s0CoordDisplay.textContent = '';
-          tCrosshair.style.display = 'none';
-          s0Crosshair.style.display = 'none';
+      }
+      
+      // Image series mouse events (only if enabled) - no crosshairs, just cursor and chart updates
+      if (enableImageSeriesInteractivity) {
+        imageSeriesWrappers.forEach((wrapper, index) => {
+          const image = wrapper.querySelector('img');
+          
+          if (image) {
+            wrapper.addEventListener('mousemove', function(e) {
+              handleMouseMove(e, wrapper, image, allCrosshairs, allCoordDisplays);
+            });
+            
+            wrapper.addEventListener('mouseleave', function() {
+              hideAllCrosshairs(allCrosshairs, allCoordDisplays);
+            });
+          }
         });
       }
     }
@@ -633,6 +710,27 @@
     // Process image series data for current dataset
     async function processImageSeries(images) {
       currentImageArrays = [];
+      currentS0Array = [];
+      currentTArray = [];
+      
+      // Process S0 and T parameter maps
+      if (images.label_S0) {
+        try {
+          const s0ImageData = await decodeImageToArray(images.label_S0);
+          currentS0Array = imageDataToNormalizedArray(s0ImageData);
+        } catch (error) {
+          console.error('Error processing S0 image:', error);
+        }
+      }
+      
+      if (images.label_T) {
+        try {
+          const tImageData = await decodeImageToArray(images.label_T);
+          currentTArray = imageDataToNormalizedArray(tImageData);
+        } catch (error) {
+          console.error('Error processing T image:', error);
+        }
+      }
       
       // Decode all image_* arrays
       for (let i = 0; i < 10; i++) {
@@ -701,10 +799,17 @@
         for (let i = 0; i < 10; i++) {
           const imageKey = `image_${i}`;
           if (images[imageKey]) {
+            // Create wrapper div (no crosshair overlay for echo series)
+            const wrapper = document.createElement('div');
+            wrapper.className = 'image-wrapper';
+            
+            // Create image element
             const img = document.createElement('img');
             img.src = `data:image/png;base64,${images[imageKey]}`;
             img.alt = `${config.echoAltPrefix} ${i}`;
-            imageseriesGrid.appendChild(img);
+            
+            wrapper.appendChild(img);
+            imageseriesGrid.appendChild(wrapper);
           }
         }
         
@@ -719,6 +824,15 @@
         imagesContainer.style.display = 'none';
         noImagesMessage.style.display = 'block';
         currentImageArrays = [];
+      }
+    }
+
+    // Function to toggle image series interactivity
+    function toggleImageSeriesInteractivity(enabled) {
+      enableImageSeriesInteractivity = enabled;
+      // Re-setup mouse listeners with new setting
+      if (currentDatasetKey) {
+        setTimeout(setupMouseListeners, 100);
       }
     }
 
@@ -741,8 +855,12 @@
     // Initialize everything when DOM is loaded
     document.addEventListener('DOMContentLoaded', () => {
       initializeChart();
+            
       updateContent('invivo');
     });
+
+    // Expose toggle function globally for external control
+    window.toggleImageSeriesInteractivity = toggleImageSeriesInteractivity;
     </script>
 
   </body>

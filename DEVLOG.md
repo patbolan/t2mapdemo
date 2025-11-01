@@ -1,8 +1,9 @@
 ** CURRENT WORKING **
-Got explore datasets to show all three cases
-* Load all three datasets at once. Then the buttons just swap between them in JS, without calling backend. 
-* in vivo needs to do different rotation and scaling. Don't know how yet
-* Then add the itneraction
+Initial interaction is working. 
+- scaling is off
+- add zoom/pan
+- Add the noisy data to the plot
+
 
 
 ** Running the server**  
