@@ -1,28 +1,25 @@
-from flask import Flask, render_template, abort
+from flask import Flask, render_template, abort, request
 import platform
 import time
 import shutil
 import os
 import socket
 import nibabel as nib
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import io
 import base64
-
-try:
-    import psutil
-except ImportError:
-    psutil = None
+import glob
+import psutil
 
 app = Flask(__name__)
 start_time = time.time()
 
 
-
 def get_available_cases():
     """Get list of available case IDs from the synth images directory."""
-    images_dir = "/home/pbolan/prj/prostate_t2map_modified/datasets/synth_imagenet_1k_test/images"
+    images_dir = "static/datasets/synth_imagenet_1k_test/images"
     if not os.path.exists(images_dir):
         return []
     
@@ -38,7 +35,7 @@ def get_available_cases():
 
 def get_prediction_methods():
     """Get list of available prediction methods from the predictions directory."""
-    preds_base_dir = "/home/pbolan/prj/prostate_t2map_modified/predictions/IMAGENET_TEST_1k"
+    preds_base_dir = "static/predictions/IMAGENET_TEST_1k"
     if not os.path.exists(preds_base_dir):
         return []
     
@@ -55,9 +52,9 @@ def load_images(case_id, prediction_method='FIT_NLLS', reference_method='Ground_
     """Load and return the four parametric images as numpy arrays in a dictionary."""
     
     # Define base directories
-    images_dir = "/home/pbolan/prj/prostate_t2map_modified/datasets/synth_imagenet_1k_test/images"
-    labels_dir = "/home/pbolan/prj/prostate_t2map_modified/datasets/synth_imagenet_1k_test/labels"
-    preds_base_dir = "/home/pbolan/prj/prostate_t2map_modified/predictions/IMAGENET_TEST_1k"
+    images_dir = "static/datasets/synth_imagenet_1k_test/images"
+    labels_dir = "static/datasets/synth_imagenet_1k_test/labels"
+    preds_base_dir = "static/predictions/IMAGENET_TEST_1k"
     
     synth_file = os.path.join(images_dir, f"synth_{case_id}.nii.gz")
     
@@ -135,7 +132,7 @@ def load_invivo_images(case_id, prediction_method='FIT_NLLS'):
     """
     
     # Define base directories
-    images_dir = "/home/pbolan/prj/prostate_t2map_modified/datasets/invivo2D_set3/images"
+    images_dir = "static/datasets/invivo2D_set3/images"
     
     # Define original images file path
     orig_file = os.path.join(images_dir, f"invivo_{case_id}.nii.gz")
@@ -166,9 +163,9 @@ def load_invivo_images(case_id, prediction_method='FIT_NLLS'):
     for noise_level in range(10):
         # Handle noise_level = 0 (no noise suffix) vs noise_level > 0
         if noise_level == 0:
-            preds_base_dir = "/home/pbolan/prj/prostate_t2map_modified/predictions/INVIVO2D_SET3"
+            preds_base_dir = "static/predictions/INVIVO2D_SET3"
         else:
-            preds_base_dir = f"/home/pbolan/prj/prostate_t2map_modified/predictions/INVIVO2D_SET3_NOISE_{noise_level}"
+            preds_base_dir = f"static/predictions/INVIVO2D_SET3_NOISE_{noise_level}"
         
         # Define predictions file path
         preds_file = os.path.join(preds_base_dir, prediction_method, f"preds_{case_id}.nii.gz")
@@ -207,6 +204,157 @@ def load_invivo_images(case_id, prediction_method='FIT_NLLS'):
     return all_noise_levels
 
 
+def load_images_2(dataset, case_id, type, method=None, rotation=1):
+    """More general image loading function that will eventually replace load_images().
+    
+    Args:
+        dataset (str): Dataset name (e.g., "IMAGENET_TEST_1k", "INVIVO2D_SET3")
+        case_id (str): Case identifier (e.g., "000001")
+        type (str): Type of data to load:
+            - "image_series": Returns the series of input images (e.g., multi-echo data)
+            - "label": Returns the ground truth parametric maps from /labels folder
+            - "prediction": Returns prediction results (requires method parameter)
+        method (str, optional): Prediction method name (e.g., "FIT_NLLS"). Required when type="prediction"
+        rotation (int, optional): Number of 90-degree clockwise rotations to apply (default: 1)
+    
+    Returns:
+        dict: Dictionary containing the loaded images as base64 encoded PNG strings.
+    """
+
+    # File prefixes vary by dataset type
+    if dataset.lower().startswith("synth"):
+        is_synth = True
+        prefix = "synth"    
+        S0_vmin, S0_vmax = 0, 1
+        T_vmin, T_vmax = 0, 4
+        imgseries_vmin, imgseries_vmax = 0, 1  # Assuming normalized input images
+    else:
+        is_synth = False
+        prefix = "invivo"
+        S0_vmin, S0_vmax = 0, 0.75
+        T_vmin, T_vmax = 0, 2
+        imgseries_vmin, imgseries_vmax = 0, 1000  # Assuming normalized input images
+
+    result = {}
+    if type == "image_series":
+        images_dir = f"static/datasets/{dataset}/images"
+        image_file = os.path.join(images_dir, f"{prefix}_{case_id}.nii.gz")
+        
+        if not os.path.exists(image_file):
+            print(f"Image series file not found: {image_file}")
+            return None
+        
+        # Load the NIfTI file
+        img = nib.load(image_file)
+        data = img.get_fdata()
+
+        # Multiple volumes (e.g., multi-echo)
+        num_volumes = data.shape[3]
+        for i in range(num_volumes):
+            result[f'image_{i}'] = data[:, :, 0, i]
+            
+    elif type == "label":
+        # Load ground truth parametric maps from labels folder
+        labels_dir = f"static/datasets/{dataset}/labels"
+        label_file = os.path.join(labels_dir, f"{prefix}_{case_id}.nii.gz")
+        
+        if not os.path.exists(label_file):
+            print(f"Label file not found: {label_file}")
+            return None
+        
+        print(f'Loading label file: {label_file}')
+
+        # Load the NIfTI file
+        img = nib.load(label_file)
+        data = img.get_fdata()
+        
+        result['label_S0'] = data[:, :, 0, 0]  # S0 parameter
+        result['label_T'] = data[:, :, 0, 1] # T parameter
+ 
+    elif type == "prediction":
+        # Load prediction results
+        if method is None:
+            raise ValueError("Method parameter is required when type='prediction'")
+        
+        preds_base_dir = f"static/predictions/{dataset}"        
+        pred_file = os.path.join(preds_base_dir, method, f"preds_{case_id}.nii.gz")
+        
+        if not os.path.exists(pred_file):
+            print(f"Prediction file not found: {pred_file}")
+            return None
+        
+        # Load the NIfTI file
+        img = nib.load(pred_file)
+        data = img.get_fdata()
+        
+        result['pred_S0'] = data[:, :, 0, 0]  # S0 parameter
+        result['pred_T'] = data[:, :, 0, 1] if data.shape[3] > 1 else data[:, :, 0, 0]  # T parameter
+        
+    else:
+        raise ValueError(f"Unknown type: {type}. Must be 'image_series', 'label', or 'prediction'")
+    
+    # For each image in results, normalize, rotate, and convert to base64
+    base64_data = {}
+    for key, array in result.items():
+        # Determine scaling and colormap based on image type
+        if 'image' in key:
+            # Synth images: use same scaling as S0 (0-1) and grayscale
+            vmin, vmax = imgseries_vmin, imgseries_vmax
+            cmap = 'gray'
+        elif 'S0' in key:
+            vmin, vmax = S0_vmin, S0_vmax
+            cmap = 'gray'
+        else:  # 'T' parameter
+            vmin, vmax = T_vmin, T_vmax
+            cmap = 'viridis'
+        
+        # Normalize the array to 0-255 range
+        normalized = np.clip((array - vmin) / (vmax - vmin), 0, 1)
+        normalized = (normalized * 255).astype(np.uint8)
+        
+        # Apply rotation if specified (k=-rotation means clockwise)
+        if rotation != 0:
+            normalized = np.rot90(normalized, k=-rotation)
+        
+        # Convert to base64 using the helper function
+        img_str = array_to_base64(normalized, cmap=cmap, vmin=0, vmax=255)
+        
+        base64_data[key] = img_str
+    
+    return base64_data
+    
+
+def array_to_base64(array, cmap='gray', vmin=0, vmax=255):
+    """Convert a 2D numpy array to a base64 encoded PNG string.
+    Uses Matplotlib to render the image.
+    
+    Args:
+        array: 2D numpy array to convert
+        cmap: Colormap to use for the image (default: 'gray')
+        vmin: Minimum value for color scaling (default: 0)
+        vmax: Maximum value for color scaling (default: 255)
+    
+    Returns:
+        str: Base64 encoded PNG image string
+    """
+    matplotlib.use('Agg')  # Use non-interactive backend
+
+    # Create figure for this image
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(array.T, origin='lower', cmap=cmap, vmin=vmin, vmax=vmax)
+    ax.axis('off')
+    plt.tight_layout()
+    
+    # Convert to base64
+    img_buffer = io.BytesIO()
+    plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', pad_inches=0)
+    img_buffer.seek(0)
+    img_str = base64.b64encode(img_buffer.getvalue()).decode()
+    plt.close()
+    
+    return img_str
+
+
 def images_to_base64(images, rotation=1, t_max=4):
     """Convert the parametric images to base64 encoded PNGs.
     
@@ -215,7 +363,6 @@ def images_to_base64(images, rotation=1, t_max=4):
         rotation: Number of 90-degree clockwise rotations to apply (default=1)
         t_max: Maximum value for T parameter scaling (default=4)
     """
-    import matplotlib
     matplotlib.use('Agg')  # Use non-interactive backend
     
     image_data = {}
@@ -226,7 +373,7 @@ def images_to_base64(images, rotation=1, t_max=4):
     
     for key, array in images.items():
         # Determine scaling and colormap based on image type
-        if 'synth' in key:
+        if 'image' in key:
             # Synth images: use same scaling as S0 (0-1) and grayscale
             vmin, vmax = s0_vmin, s0_vmax
             cmap = 'gray'
@@ -245,18 +392,8 @@ def images_to_base64(images, rotation=1, t_max=4):
         if rotation != 0:
             normalized = np.rot90(normalized, k=-rotation)
         
-        # Create figure for this image
-        fig, ax = plt.subplots(figsize=(6, 6))
-        ax.imshow(normalized.T, origin='lower', cmap=cmap, vmin=0, vmax=255)
-        ax.axis('off')
-        plt.tight_layout()
-        
-        # Convert to base64
-        img_buffer = io.BytesIO()
-        plt.savefig(img_buffer, format='png', dpi=100, bbox_inches='tight', pad_inches=0)
-        img_buffer.seek(0)
-        img_str = base64.b64encode(img_buffer.getvalue()).decode()
-        plt.close()
+        # Convert to base64 using the new function
+        img_str = array_to_base64(normalized, cmap=cmap, vmin=0, vmax=255)
         
         image_data[key] = img_str
     
@@ -269,68 +406,68 @@ def index():
     return render_template('index.html', cases=cases)
 
 
-@app.route('/sample_datasets')
-def sample_datasets():
+@app.route('/explore_datasets')
+def explore_datasets():
     # Get dataset type from query parameter
-    from flask import request
-    dataset_type = request.args.get('type', 'imagenet')
+    dataset_type = request.args.get('type')
+    print(f"Exploring dataset type: {dataset_type}")
     
     # Validate dataset type
     valid_types = ['invivo', 'imagenet', 'urand']
     if dataset_type not in valid_types:
-        dataset_type = 'imagenet'  # Default to imagenet
+        dataset_type = 'imagenet'  # Default to invivo
     
-    # Load case 000001 with default settings for display
-    case_id = '000001'
-    images = load_images(case_id, prediction_method='FIT_NLLS', reference_method='Ground_Truth')
+    if dataset_type == 'imagenet':
+        # Use load_images_2() for ImageNet dataset
+        case_id = '000066'
+        dataset_name = 'synth_imagenet_1k_train'
+        
+        # Load image series and labels using load_images_2() with base64 conversion
+        image_series = load_images_2(dataset_name, case_id, "image_series", rotation=1)
+        labels = load_images_2(dataset_name, case_id, "label", rotation=1)
+
+    elif dataset_type == 'urand':
+        # Use load_images_2() for URAND dataset
+        case_id = '000066'
+        dataset_name = 'synth_urand_1k_train'
+        
+        # Load image series and labels using load_images_2() with base64 conversion
+        image_series = load_images_2(dataset_name, case_id, "image_series", rotation=1)
+        labels = load_images_2(dataset_name, case_id, "label", rotation=1)
     
-    if images is not None:
-        # Extract pixel values at coordinate (20, 20) for all synth images
-        pixel_x, pixel_y = 20, 20
-        synth_values = []
-        for i in range(10):
-            synth_key = f'synth_{i}'
-            if synth_key in images:
-                # Extract pixel value at (20, 20)
-                value = float(images[synth_key][pixel_x, pixel_y])
-                synth_values.append(value)
+    elif dataset_type == 'invivo':
+        # Use load_images_2() for INVIVO dataset
+        case_id = '000198'
+        dataset_name = 'invivo2D_set1'
         
-        # Convert all synth arrays to lists for JavaScript access
-        # Need to rotate them the same way as the displayed images
-        synth_arrays = []
-        for i in range(10):
-            synth_key = f'synth_{i}'
-            if synth_key in images:
-                # Rotate 90 degrees clockwise and transpose to match displayed orientation
-                rotated = np.rot90(images[synth_key], k=-1).T
-                synth_arrays.append(rotated.tolist())
-        
-        # Also convert S0 and T parameter arrays for JavaScript access
-        s0_array = np.rot90(images['label_S0'], k=-1).T.tolist()
-        t_array = np.rot90(images['label_T'], k=-1).T.tolist()
-        
-        # Convert images to base64 for web display (with 1 CW rotation)
-        image_data = images_to_base64(images, rotation=1)
+        # Load image series using load_images_2() with base64 conversion
+        image_series = load_images_2(dataset_name, case_id, "image_series", rotation=0)
+
+        # Not actually labels for invivo, but predictions from FIT_NLLS with base64 conversion
+        preds = load_images_2(dataset_name.upper(), case_id, type="prediction", method="FIT_NLLS", rotation=0)
+
+        # The html template expects 'label_' keys. Rename the preds to labels
+        labels = {key.replace('pred_', 'label_'): value for key, value in preds.items()}
+
+    else:
+        # Throw NotImplemented for other dataset types
+        raise NotImplementedError(f"Dataset type '{dataset_type}' is not yet implemented")
+
+    if image_series is not None and labels is not None:
+        # Combine image series and labels into one dictionary (already base64 encoded)
+        image_data = {**image_series, **labels}
+        print(f'Combined image data keys: {list(image_data.keys())}')
     else:
         print(f"Sample dataset images not found for type: {dataset_type}")
         image_data = None
-        synth_values = []
-        synth_arrays = []
-        s0_array = []
-        t_array = []
-    
-    return render_template('sample_datasets.html', 
+
+    return render_template('explore_datasets.html', 
                           images=image_data, 
-                          dataset_type=dataset_type,
-                          synth_values=synth_values,
-                          synth_arrays=synth_arrays,
-                          s0_array=s0_array,
-                          t_array=t_array)
+                          dataset_type=dataset_type)
 
 
 @app.route('/invivo_datasets')
 def invivo_datasets():
-    from flask import request
     
     # All prediction methods to display
     valid_methods = ['FIT_NLLS', 'CNN_IMAGENET', 'NN1D_URAND']
@@ -368,7 +505,6 @@ def invivo_datasets():
 @app.route('/case/<case_id>')
 def view_case(case_id):
     # Get prediction method from query parameter, default to FIT_NLLS
-    from flask import request
     prediction_method = request.args.get('method', 'FIT_NLLS')
     reference_method = request.args.get('reference', 'Ground_Truth')
     

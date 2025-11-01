@@ -1,3 +1,9 @@
+** CURRENT WORKING **
+Got explore datasets to show all three cases
+* Load all three datasets at once. Then the buttons just swap between them in JS, without calling backend. 
+* in vivo needs to do different rotation and scaling. Don't know how yet
+* Then add the itneraction
+
 
 ** Running the server**  
 Activate local environment, then
@@ -28,7 +34,18 @@ docker rmi my-app
 
 
 ** Design **
-https://youtu.be/nTZPyVtEPmo is the video
+For exploring the datasets
+In vivo, the plot should show both raw data and a NLLS fit. 
+For synthetic, the plot should show the True data and the synthetic noise.
+Noise should be exactly the same as synth
+
+Plan for the data to be retrieved
+images are always with noise
+predictions
+reference 
+
+invivo test data
+
 
 
 ** Notes ***

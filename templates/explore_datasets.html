@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Explore Datasets</title>
+    <style>
+      body { 
+        font-family: Arial, sans-serif; 
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 { 
+        margin-bottom: 1rem; 
+        color: #333; 
+      }
+      h2 {
+        margin-top: 2rem;
+        color: #555;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5rem;
+      }
+      .back-link { 
+        display: inline-block; 
+        margin-bottom: 1rem; 
+        color: #0066cc; 
+        text-decoration: none;
+        font-weight: bold;
+      }
+      .back-link:hover { 
+        text-decoration: underline; 
+      }
+      .dataset-section {
+        margin: 2rem 0;
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+      }
+      .dataset-description {
+        margin: 1rem 0;
+        line-height: 1.6;
+      }
+      .info-box {
+        background: #e7f3ff;
+        border-left: 4px solid #0066cc;
+        padding: 1rem;
+        margin: 1rem 0;
+      }
+      .dataset-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        margin: 2rem 0;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .dataset-btn {
+        flex: 1;
+        padding: 0.75rem 1.5rem;
+        background: #0066cc;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 1rem;
+        font-weight: bold;
+        cursor: pointer;
+        transition: background-color 0.2s, transform 0.1s;
+      }
+      .dataset-btn:hover {
+        background: #0052a3;
+        transform: translateY(-1px);
+      }
+      .dataset-btn:active {
+        transform: translateY(0);
+      }
+      .images-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr 2fr;
+        gap: 2rem;
+        margin: 2rem auto;
+        max-width: 1400px;
+        align-items: start;
+      }
+      .image-container {
+        text-align: center;
+      }
+      .image-container img {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+      .image-title {
+        margin: 0.5rem 0;
+        font-weight: bold;
+        color: #555;
+      }
+      .synth-container {
+        text-align: center;
+      }
+      .synth-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        grid-template-rows: repeat(2, 1fr);
+        gap: 0.3rem;
+      }
+      .synth-grid img {
+        width: 100%;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .synth-grid-title {
+        text-align: center;
+        font-weight: bold;
+        color: #555;
+        margin-bottom: 0.5rem;
+        font-size: 0.95em;
+      }
+    </style>
+  </head>
+  <body>
+    <a href="/" class="back-link">← Back to Home</a>
+    
+    <h1>Representative Datasets</h1>
+    
+    <div class="info-box">
+      <p><strong>About the Datasets</strong></p>
+      <p>This page provides an interactive display for exploring the three sample datasets shown in 
+        <a href="https://link.springer.com/article/10.1007/s10334-024-01186-3/figures/1">Figure 1 </a> 
+        of the paper. Click the buttons below to explore all three. </p>   
+    </div>
+
+    <div class="dataset-buttons">
+      <button class="dataset-btn" data-dataset="invivo">In Vivo</button>
+      <button class="dataset-btn" data-dataset="imagenet">ImageNet</button>
+      <button class="dataset-btn" data-dataset="random">Random</button>
+    </div>
+
+    <div class="dataset-section">
+      <h2>Example Case: 000066</h2>
+      <div class="dataset-description">
+        <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066.</p>
+      </div>
+      {% if images %}
+      <div class="images-grid">
+        <div class="image-container">
+          <div class="image-title">
+            <div style="font-size: 1.1em;">S0 Parameter</div>
+            <div style="font-size: 0.9em;">Reference (Labels)</div>
+          </div>
+          <img src="data:image/png;base64,{{ images.label_S0 }}" alt="Reference S0">
+        </div>
+        
+        <div class="image-container">
+          <div class="image-title">
+            <div style="font-size: 1.1em;">T Parameter</div>
+            <div style="font-size: 0.9em;">Reference (Labels)</div>
+          </div>
+          <img src="data:image/png;base64,{{ images.label_T }}" alt="Reference T">
+        </div>
+
+        <div class="synth-container">
+          <div class="synth-grid-title">Multi-Echo Image Series</div>
+          <div class="synth-grid">
+            {% for i in range(10) %}
+              {% set image_key = 'image_' ~ i %}
+              {% if images.get(image_key) %}
+                <img src="data:image/png;base64,{{ images[image_key] }}" alt="Image {{ i }}">
+              {% endif %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      {% else %}
+      <p style="text-align: center; color: #666;">Images not available for this case.</p>
+      {% endif %}
+    </div>
+
+  </body>
+</html>
