@@ -15,12 +15,6 @@
         margin-bottom: 1rem; 
         color: #333; 
       }
-      h2 {
-        margin-top: 2rem;
-        color: #555;
-        border-bottom: 2px solid #dee2e6;
-        padding-bottom: 0.5rem;
-      }
       .back-link { 
         display: inline-block; 
         margin-bottom: 1rem; 
@@ -31,51 +25,83 @@
       .back-link:hover { 
         text-decoration: underline; 
       }
-      .dataset-section {
-        margin: 2rem 0;
-        padding: 1.5rem;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-      }
-      .dataset-description {
-        margin: 1rem 0;
-        line-height: 1.6;
-      }
       .info-box {
         background: #e7f3ff;
         border-left: 4px solid #0066cc;
         padding: 1rem;
-        margin: 1rem 0;
+        margin: 1rem 0 2rem 0;
       }
-      .dataset-buttons {
-        display: flex;
-        justify-content: space-between;
-        gap: 1rem;
+      
+      /* Tab Navigation */
+      .tab-container {
         margin: 2rem 0;
-        max-width: 600px;
-        margin-left: auto;
-        margin-right: auto;
       }
-      .dataset-btn {
-        flex: 1;
-        padding: 0.75rem 1.5rem;
-        background: #0066cc;
-        color: white;
+      .tab-nav {
+        display: flex;
+        border-bottom: 2px solid #dee2e6;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+      .tab-nav li {
+        margin: 0;
+      }
+      .tab-nav button {
+        background: none;
         border: none;
-        border-radius: 6px;
+        padding: 1rem 2rem;
         font-size: 1rem;
-        font-weight: bold;
+        font-weight: 500;
+        color: #6c757d;
         cursor: pointer;
-        transition: background-color 0.2s, transform 0.1s;
+        border-bottom: 3px solid transparent;
+        transition: all 0.2s ease;
+        white-space: nowrap;
       }
-      .dataset-btn:hover {
-        background: #0052a3;
-        transform: translateY(-1px);
+      .tab-nav button:hover {
+        color: #0066cc;
+        background: #f8f9fa;
       }
-      .dataset-btn:active {
-        transform: translateY(0);
+      .tab-nav button.active {
+        color: #0066cc;
+        border-bottom-color: #0066cc;
+        background: #fff;
       }
+      
+      /* Tab Content */
+      .tab-content {
+        display: none;
+        padding: 2rem 0;
+        animation: fadeIn 0.3s ease-in;
+      }
+      .tab-content.active {
+        display: block;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      .dataset-card {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 2rem;
+      }
+      .dataset-title {
+        margin: 0 0 1rem 0;
+        color: #333;
+        font-size: 1.5rem;
+        border-bottom: 2px solid #dee2e6;
+        padding-bottom: 0.5rem;
+      }
+      .dataset-description {
+        margin: 1rem 0 2rem 0;
+        line-height: 1.6;
+        color: #555;
+      }
+      
+      /* Images Grid */
       .images-grid {
         display: grid;
         grid-template-columns: 1fr 1fr 2fr;
@@ -92,6 +118,7 @@
         height: auto;
         border: 1px solid #ddd;
         border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       }
       .image-title {
         margin: 0.5rem 0;
@@ -112,6 +139,7 @@
         height: auto;
         border: 1px solid #ddd;
         border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
       }
       .synth-grid-title {
         text-align: center;
@@ -119,6 +147,26 @@
         color: #555;
         margin-bottom: 0.5rem;
         font-size: 0.95em;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        .tab-nav {
+          flex-direction: column;
+        }
+        .tab-nav button {
+          text-align: left;
+          border-bottom: none;
+          border-left: 3px solid transparent;
+        }
+        .tab-nav button.active {
+          border-left-color: #0066cc;
+          border-bottom-color: transparent;
+        }
+        .images-grid {
+          grid-template-columns: 1fr;
+          gap: 1rem;
+        }
       }
     </style>
   </head>
@@ -130,56 +178,170 @@
     <div class="info-box">
       <p><strong>About the Datasets</strong></p>
       <p>This page provides an interactive display for exploring the three sample datasets shown in 
-        <a href="https://link.springer.com/article/10.1007/s10334-024-01186-3/figures/1">Figure 1 </a> 
-        of the paper. Click the buttons below to explore all three. </p>   
+        <a href="https://link.springer.com/article/10.1007/s10334-024-01186-3/figures/1">Figure 1</a> 
+        of the paper. Click the tabs below to explore all three.</p>   
     </div>
 
-    <div class="dataset-buttons">
-      <button class="dataset-btn" data-dataset="invivo">In Vivo</button>
-      <button class="dataset-btn" data-dataset="imagenet">ImageNet</button>
-      <button class="dataset-btn" data-dataset="random">Random</button>
-    </div>
+    <div class="tab-container">
+      <!-- Tab Navigation -->
+      <ul class="tab-nav">
+        <li><button class="tab-btn active" data-tab="invivo">In Vivo Dataset</button></li>
+        <li><button class="tab-btn" data-tab="imagenet">ImageNet Synthetic</button></li>
+        <li><button class="tab-btn" data-tab="random">Random Synthetic</button></li>
+      </ul>
 
-    <div class="dataset-section">
-      <h2>Example Case: 000066</h2>
-      <div class="dataset-description">
-        <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066.</p>
-      </div>
-      {% if images %}
-      <div class="images-grid">
-        <div class="image-container">
-          <div class="image-title">
-            <div style="font-size: 1.1em;">S0 Parameter</div>
-            <div style="font-size: 0.9em;">Reference (Labels)</div>
+      <!-- Tab Content: In Vivo -->
+      <div class="tab-content active" id="tab-invivo">
+        <div class="dataset-card">
+          <h2 class="dataset-title">In Vivo Dataset</h2>
+          <div class="dataset-description">
+            <p>Below are the reference parametric maps for S0 and T parameters from an in vivo case (000198).</p>
           </div>
-          <img src="data:image/png;base64,{{ images.label_S0 }}" alt="Reference S0">
+          <div class="images-container">
+            {% if invivo_images %}
+            <div class="images-grid">
+              <div class="image-container">
+                <div class="image-title">
+                  <div style="font-size: 1.1em;">S0 Parameter</div>
+                  <div style="font-size: 0.9em;">Reference (Labels)</div>
+                </div>
+                <img src="data:image/png;base64,{{ invivo_images.label_S0 }}" alt="In Vivo S0">
+              </div>
+              
+              <div class="image-container">
+                <div class="image-title">
+                  <div style="font-size: 1.1em;">T Parameter</div>
+                  <div style="font-size: 0.9em;">Reference (Labels)</div>
+                </div>
+                <img src="data:image/png;base64,{{ invivo_images.label_T }}" alt="In Vivo T">
+              </div>
+
+              <div class="synth-container">
+                <div class="synth-grid-title">Multi-Echo Image Series</div>
+                <div class="synth-grid">
+                  {% for i in range(10) %}
+                    {% set image_key = 'image_' ~ i %}
+                    {% if invivo_images.get(image_key) %}
+                      <img src="data:image/png;base64,{{ invivo_images[image_key] }}" alt="Echo {{ i }}">
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #666;">In vivo images not available.</p>
+            {% endif %}
+          </div>
         </div>
+      </div>
+
+      <!-- Tab Content: ImageNet -->
+      <div class="tab-content" id="tab-imagenet">
+        <div class="dataset-card">
+          <h2 class="dataset-title">ImageNet Synthetic Dataset</h2>
+          <div class="dataset-description">
+            <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using ImageNet-based synthetic data.</p>
+          </div>
+          <div class="images-container">
+            {% if imagenet_images %}
+            <div class="images-grid">
+              <div class="image-container">
+                <div class="image-title">
+                  <div style="font-size: 1.1em;">S0 Parameter</div>
+                  <div style="font-size: 0.9em;">Ground Truth</div>
+                </div>
+                <img src="data:image/png;base64,{{ imagenet_images.label_S0 }}" alt="ImageNet S0">
+              </div>
+              
+              <div class="image-container">
+                <div class="image-title">
+                  <div style="font-size: 1.1em;">T Parameter</div>
+                  <div style="font-size: 0.9em;">Ground Truth</div>
+                </div>
+                <img src="data:image/png;base64,{{ imagenet_images.label_T }}" alt="ImageNet T">
+              </div>
+
+              <div class="synth-container">
+                <div class="synth-grid-title">Synthetic Multi-Echo Series</div>
+                <div class="synth-grid">
+                  {% for i in range(10) %}
+                    {% set image_key = 'image_' ~ i %}
+                    {% if imagenet_images.get(image_key) %}
+                      <img src="data:image/png;base64,{{ imagenet_images[image_key] }}" alt="Synth {{ i }}">
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #666;">ImageNet images not available.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Content: Random -->
+      <div class="tab-content" id="tab-random">
+        <div class="dataset-card">
+          <h2 class="dataset-title">Random Synthetic Dataset</h2>
+          <div class="dataset-description">
+            <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using randomly generated synthetic data.</p>
+          </div>
+          <div class="images-container">
+            {% if urand_images %}
+            <div class="images-grid">
+              <div class="image-container">
+                <div class="image-title">
+                  <div style="font-size: 1.1em;">S0 Parameter</div>
+                  <div style="font-size: 0.9em;">Ground Truth</div>
+                </div>
+                <img src="data:image/png;base64,{{ urand_images.label_S0 }}" alt="Random S0">
+              </div>
+              
+              <div class="image-container">
+                <div class="image-title">
+                  <div style="font-size: 1.1em;">T Parameter</div>
+                  <div style="font-size: 0.9em;">Ground Truth</div>
+                </div>
+                <img src="data:image/png;base64,{{ urand_images.label_T }}" alt="Random T">
+              </div>
+
+              <div class="synth-container">
+                <div class="synth-grid-title">Synthetic Multi-Echo Series</div>
+                <div class="synth-grid">
+                  {% for i in range(10) %}
+                    {% set image_key = 'image_' ~ i %}
+                    {% if urand_images.get(image_key) %}
+                      <img src="data:image/png;base64,{{ urand_images[image_key] }}" alt="Random {{ i }}">
+                    {% endif %}
+                  {% endfor %}
+                </div>
+              </div>
+            </div>
+            {% else %}
+            <p style="text-align: center; color: #666;">Random synthetic images not available.</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    // Simple tab switching functionality
+    document.querySelectorAll('.tab-btn').forEach(button => {
+      button.addEventListener('click', () => {
+        const tabId = button.getAttribute('data-tab');
         
-        <div class="image-container">
-          <div class="image-title">
-            <div style="font-size: 1.1em;">T Parameter</div>
-            <div style="font-size: 0.9em;">Reference (Labels)</div>
-          </div>
-          <img src="data:image/png;base64,{{ images.label_T }}" alt="Reference T">
-        </div>
-
-        <div class="synth-container">
-          <div class="synth-grid-title">Multi-Echo Image Series</div>
-          <div class="synth-grid">
-            {% for i in range(10) %}
-              {% set image_key = 'image_' ~ i %}
-              {% if images.get(image_key) %}
-                <img src="data:image/png;base64,{{ images[image_key] }}" alt="Image {{ i }}">
-              {% endif %}
-            {% endfor %}
-          </div>
-        </div>
-      </div>
-      
-      {% else %}
-      <p style="text-align: center; color: #666;">Images not available for this case.</p>
-      {% endif %}
-    </div>
+        // Remove active class from all tabs and content
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+        
+        // Add active class to clicked tab and corresponding content
+        button.classList.add('active');
+        document.getElementById(`tab-${tabId}`).classList.add('active');
+      });
+    });
+    </script>
 
   </body>
 </html>

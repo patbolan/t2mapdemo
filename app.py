@@ -227,13 +227,13 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
         prefix = "synth"    
         S0_vmin, S0_vmax = 0, 1
         T_vmin, T_vmax = 0, 4
-        imgseries_vmin, imgseries_vmax = 0, 1  # Assuming normalized input images
+        imgseries_vmin, imgseries_vmax = 0.1, 0.8  # Assuming normalized input images
     else:
         is_synth = False
         prefix = "invivo"
         S0_vmin, S0_vmax = 0, 0.75
         T_vmin, T_vmax = 0, 2
-        imgseries_vmin, imgseries_vmax = 0, 1000  # Assuming normalized input images
+        imgseries_vmin, imgseries_vmax = 0, .25  # Assuming normalized input images
 
     result = {}
     if type == "image_series":
@@ -246,12 +246,14 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
         
         # Load the NIfTI file
         img = nib.load(image_file)
-        data = img.get_fdata()
+        img3d = img.get_fdata()
 
-        # Multiple volumes (e.g., multi-echo)
-        num_volumes = data.shape[3]
+        img3d = img3d[:,:,0,:].squeeze()
+        img3d = img3d / img3d.max() # normalize
+
+        num_volumes = img3d.shape[2]
         for i in range(num_volumes):
-            result[f'image_{i}'] = data[:, :, 0, i]
+            result[f'image_{i}'] = img3d[:, :, i]
             
     elif type == "label":
         # Load ground truth parametric maps from labels folder
@@ -408,62 +410,69 @@ def index():
 
 @app.route('/explore_datasets')
 def explore_datasets():
-    # Get dataset type from query parameter
-    dataset_type = request.args.get('type')
-    print(f"Exploring dataset type: {dataset_type}")
+    # Load all three sample datasets
     
-    # Validate dataset type
-    valid_types = ['invivo', 'imagenet', 'urand']
-    if dataset_type not in valid_types:
-        dataset_type = 'imagenet'  # Default to invivo
+    # 1. ImageNet dataset
+    case_id = '000066'
+    dataset_name = 'synth_imagenet_1k_train'
     
-    if dataset_type == 'imagenet':
-        # Use load_images_2() for ImageNet dataset
-        case_id = '000066'
-        dataset_name = 'synth_imagenet_1k_train'
-        
-        # Load image series and labels using load_images_2() with base64 conversion
-        image_series = load_images_2(dataset_name, case_id, "image_series", rotation=1)
-        labels = load_images_2(dataset_name, case_id, "label", rotation=1)
-
-    elif dataset_type == 'urand':
-        # Use load_images_2() for URAND dataset
-        case_id = '000066'
-        dataset_name = 'synth_urand_1k_train'
-        
-        # Load image series and labels using load_images_2() with base64 conversion
-        image_series = load_images_2(dataset_name, case_id, "image_series", rotation=1)
-        labels = load_images_2(dataset_name, case_id, "label", rotation=1)
+    # Load image series and labels for ImageNet
+    imagenet_series = load_images_2(dataset_name, case_id, "image_series", rotation=1)
+    imagenet_labels = load_images_2(dataset_name, case_id, "label", rotation=1)
     
-    elif dataset_type == 'invivo':
-        # Use load_images_2() for INVIVO dataset
-        case_id = '000198'
-        dataset_name = 'invivo2D_set1'
-        
-        # Load image series using load_images_2() with base64 conversion
-        image_series = load_images_2(dataset_name, case_id, "image_series", rotation=0)
-
-        # Not actually labels for invivo, but predictions from FIT_NLLS with base64 conversion
-        preds = load_images_2(dataset_name.upper(), case_id, type="prediction", method="FIT_NLLS", rotation=0)
-
-        # The html template expects 'label_' keys. Rename the preds to labels
-        labels = {key.replace('pred_', 'label_'): value for key, value in preds.items()}
-
+    # Combine ImageNet data
+    if imagenet_series is not None and imagenet_labels is not None:
+        imagenet_images = {**imagenet_series, **imagenet_labels}
+        print(f'ImageNet data keys: {list(imagenet_images.keys())}')
     else:
-        # Throw NotImplemented for other dataset types
-        raise NotImplementedError(f"Dataset type '{dataset_type}' is not yet implemented")
-
-    if image_series is not None and labels is not None:
-        # Combine image series and labels into one dictionary (already base64 encoded)
-        image_data = {**image_series, **labels}
-        print(f'Combined image data keys: {list(image_data.keys())}')
+        print("ImageNet dataset images not found")
+        imagenet_images = None
+    
+    # 2. URAND dataset
+    dataset_name = 'synth_urand_1k_train'
+    
+    # Load image series and labels for URAND
+    urand_series = load_images_2(dataset_name, case_id, "image_series", rotation=1)
+    urand_labels = load_images_2(dataset_name, case_id, "label", rotation=1)
+    
+    # Combine URAND data
+    if urand_series is not None and urand_labels is not None:
+        urand_images = {**urand_series, **urand_labels}
+        print(f'URAND data keys: {list(urand_images.keys())}')
     else:
-        print(f"Sample dataset images not found for type: {dataset_type}")
-        image_data = None
+        print("URAND dataset images not found")
+        urand_images = None
+    
+    # 3. InVivo dataset
+    case_id = '000198'
+    dataset_name = 'invivo2D_set1'
+    
+    # Load image series for InVivo
+    invivo_series = load_images_2(dataset_name, case_id, "image_series", rotation=0)
+    
+    # Not actually labels for invivo, but predictions from FIT_NLLS
+    invivo_preds = load_images_2(dataset_name.upper(), case_id, type="prediction", method="FIT_NLLS", rotation=0)
+    
+    # The html template expects 'label_' keys. Rename the preds to labels
+    invivo_labels = {key.replace('pred_', 'label_'): value for key, value in invivo_preds.items()}
+    
+    # Combine InVivo data
+    if invivo_series is not None and invivo_labels is not None:
+        invivo_images = {**invivo_series, **invivo_labels}
+        print(f'InVivo data keys: {list(invivo_images.keys())}')
+    else:
+        print("InVivo dataset images not found")
+        invivo_images = None
+
+    # Display only the invivo images
+    images = invivo_images
 
     return render_template('explore_datasets.html', 
-                          images=image_data, 
-                          dataset_type=dataset_type)
+                          images=images, 
+                          imagenet_images=imagenet_images,
+                          urand_images=urand_images,
+                          invivo_images=invivo_images,
+                          dataset_type='invivo')
 
 
 @app.route('/invivo_datasets')

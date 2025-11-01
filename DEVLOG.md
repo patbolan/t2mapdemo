@@ -53,3 +53,5 @@ invivo test data
 - Case 105 is the accordian man and rooster.
 - Case 001 is the airplane in the medarxiv paper. Fig 2 in Magma and Fig 3 in medarxiv
 
+*** TODO ***
+* Lots of refactoring and code cleanup!
