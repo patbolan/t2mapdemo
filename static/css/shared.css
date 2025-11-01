@@ -1,0 +1,53 @@
+/* Shared CSS Variables and Common Styles */
+:root {
+  --accent: #136f8f;
+  --muted: #6b7280;
+  --card: #ffffff;
+  --bg: #f6f9fb;
+  --max-width: 1000px;
+}
+
+/* Typography */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Common Components */
+.back-link {
+  display: inline-block;
+  margin-bottom: 1rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.back-link:hover {
+  text-decoration: underline;
+}
+
+/* Card Title Styling (from index page) */
+.card-title {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--accent);
+  font-weight: bold;
+}
+
+/* Tab Navigation with Card Title Styling */
+.tab-nav button {
+  color: var(--accent);
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+/* Info Box Styling */
+.info-box {
+  background: #e7f3ff;
+  border-left: 4px solid var(--accent);
+  padding: 1rem;
+  margin: 1rem 0 2rem 0;
+}
+
+.info-box a {
+  color: var(--accent);
+}

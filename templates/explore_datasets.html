@@ -4,9 +4,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Explore Datasets</title>
+    <!-- Shared CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
     <style>
+      /* Page-specific styles */
       body { 
-        font-family: Arial, sans-serif; 
         padding: 2rem;
         max-width: 1200px;
         margin: 0 auto;
@@ -14,22 +16,6 @@
       h1 { 
         margin-bottom: 1rem; 
         color: #333; 
-      }
-      .back-link { 
-        display: inline-block; 
-        margin-bottom: 1rem; 
-        color: #0066cc; 
-        text-decoration: none;
-        font-weight: bold;
-      }
-      .back-link:hover { 
-        text-decoration: underline; 
-      }
-      .info-box {
-        background: #e7f3ff;
-        border-left: 4px solid #0066cc;
-        padding: 1rem;
-        margin: 1rem 0 2rem 0;
       }
       
       /* Tab Navigation */
@@ -50,21 +36,17 @@
         background: none;
         border: none;
         padding: 1rem 2rem;
-        font-size: 1rem;
-        font-weight: 500;
-        color: #6c757d;
         cursor: pointer;
         border-bottom: 3px solid transparent;
         transition: all 0.2s ease;
         white-space: nowrap;
+        /* Card title styling inherited from shared.css */
       }
       .tab-nav button:hover {
-        color: #0066cc;
         background: #f8f9fa;
       }
       .tab-nav button.active {
-        color: #0066cc;
-        border-bottom-color: #0066cc;
+        border-bottom-color: var(--accent);
         background: #fff;
       }
       
@@ -160,7 +142,7 @@
           border-left: 3px solid transparent;
         }
         .tab-nav button.active {
-          border-left-color: #0066cc;
+          border-left-color: var(--accent);
           border-bottom-color: transparent;
         }
         .images-grid {
@@ -197,7 +179,6 @@
           <div class="dataset-description">
             <p>Below are the reference parametric maps for S0 and T parameters from an in vivo case (000198).</p>
           </div>
-          <div class="images-container">
             {% if invivo_images %}
             <div class="images-grid">
               <div class="image-container">
@@ -231,7 +212,6 @@
             {% else %}
             <p style="text-align: center; color: #666;">In vivo images not available.</p>
             {% endif %}
-          </div>
         </div>
       </div>
 
@@ -242,7 +222,6 @@
           <div class="dataset-description">
             <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using ImageNet-based synthetic data.</p>
           </div>
-          <div class="images-container">
             {% if imagenet_images %}
             <div class="images-grid">
               <div class="image-container">
@@ -276,7 +255,6 @@
             {% else %}
             <p style="text-align: center; color: #666;">ImageNet images not available.</p>
             {% endif %}
-          </div>
         </div>
       </div>
 
@@ -287,7 +265,6 @@
           <div class="dataset-description">
             <p>Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using randomly generated synthetic data.</p>
           </div>
-          <div class="images-container">
             {% if urand_images %}
             <div class="images-grid">
               <div class="image-container">
@@ -321,7 +298,6 @@
             {% else %}
             <p style="text-align: center; color: #666;">Random synthetic images not available.</p>
             {% endif %}
-          </div>
         </div>
       </div>
     </div>
