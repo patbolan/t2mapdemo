@@ -227,12 +227,6 @@
         grid-template-rows: repeat(2, 1fr);
         gap: 0.3rem;
       }
-      
-      .imageseries-grid .image-wrapper {
-        position: relative;
-        cursor: crosshair;
-      }
-      
       .imageseries-grid img {
         width: 100%;
         height: auto;
@@ -368,10 +362,9 @@
     </div>
 
     <!-- Image data injection -->
-    <script id="invivo-data" type="application/json">{% if invivo_images %}{{ invivo_images | tojson | safe }}{% else %}null{% endif %}</script>
-    <script id="imagenet-data" type="application/json">{% if imagenet_images %}{{ imagenet_images | tojson | safe }}{% else %}null{% endif %}</script>
-    <script id="random-data" type="application/json">{% if urand_images %}{{ urand_images | tojson | safe }}{% else %}null{% endif %}</script>
-    <script id="te-values" type="application/json">{% if TE_vals %}{{ TE_vals | tojson | safe }}{% else %}null{% endif %}</script>
+    <script id="invivo-data" type="application/json">{% if invivo_imageset %}{{ invivo_imageset | tojson | safe }}{% else %}null{% endif %}</script>
+    <script id="imagenet-data" type="application/json">{% if imagenet_imageset %}{{ imagenet_imageset | tojson | safe }}{% else %}null{% endif %}</script>
+    <script id="random-data" type="application/json">{% if urand_imageset %}{{ urand_imageset | tojson | safe }}{% else %}null{% endif %}</script>
 
     <script>
     // Dataset configuration
@@ -421,13 +414,8 @@
     let signalChart = null;
     let currentDatasetKey = 'invivo';
     let currentImageArrays = [];
-    let currentS0Array = [];
-    let currentTArray = [];
     let imageWidth = 0;
     let imageHeight = 0;
-    
-    // Configuration flag for image series interactivity
-    let enableImageSeriesInteractivity = true;
 
     // Load image data from script tags
     function getImageData(datasetKey) {
@@ -439,64 +427,58 @@
       return null;
     }
 
-    // Load TE values from script tag
-    function getTEValues() {
-      const script = document.getElementById('te-values');
-      if (script && script.textContent.trim() !== 'null') {
-        return JSON.parse(script.textContent);
-      }
-      // Fallback to indices if TE values not available
-      return Array.from({length: 10}, (_, i) => i);
-    }
-
-    // Decode base64 image to ImageData array
-    function decodeImageToArray(base64ImageData) {
-      return new Promise((resolve) => {
+    // Convert 2D array to image data URL
+    function arrayToImageSrc(array2d, colormap = 'gray') {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const img = new Image();
         
-        img.onload = () => {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
-          const imageData = ctx.getImageData(0, 0, img.width, img.height);
-          resolve(imageData);
-        };
-        img.src = `data:image/png;base64,${base64ImageData}`;
-      });
-    }
-
-    // Convert ImageData to normalized array (0-1 values)
-    function imageDataToNormalizedArray(imageData) {
-      const array = [];
-      for (let y = 0; y < imageData.height; y++) {
-        const row = [];
-        for (let x = 0; x < imageData.width; x++) {
-          const pixelIndex = (y * imageData.width + x) * 4;
-          const grayValue = imageData.data[pixelIndex]; // R channel of RGBA
-          row.push(grayValue / 255.0); // Normalize to 0-1
+        const height = array2d.length;
+        const width = array2d[0].length;
+        canvas.width = width;
+        canvas.height = height;
+        
+        const imageData = ctx.createImageData(width, height);
+        
+        // Find min/max for normalization
+        let min = Infinity, max = -Infinity;
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                min = Math.min(min, array2d[y][x]);
+                max = Math.max(max, array2d[y][x]);
+            }
         }
-        array.push(row);
-      }
-      return array;
+        
+        // Convert to grayscale image
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const normalized = (array2d[y][x] - min) / (max - min) * 255;
+                const index = (y * width + x) * 4;
+                imageData.data[index] = normalized;     // R
+                imageData.data[index + 1] = normalized; // G
+                imageData.data[index + 2] = normalized; // B
+                imageData.data[index + 3] = 255;        // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        return canvas.toDataURL('image/png');
     }
 
     // Initialize Chart.js
     function initializeChart() {
       const ctx = document.getElementById('signalChart').getContext('2d');
       
-      // Get actual TE values
-      const teValues = getTEValues();
+      // Create echo time array (10 echo times from 0 to 9)
+      const echoTimes = Array.from({length: 10}, (_, i) => i);
       
       // Initial data (will be updated when mouse moves)
-      const initialData = teValues.map(te => ({ x: te, y: 0 }));
+      const initialData = echoTimes.map(te => ({ x: te, y: 0 }));
       
       signalChart = new Chart(ctx, {
         type: 'line',
         data: {
           datasets: [{
-            label: 'Measured Signal',
+            label: 'Signal Intensity',
             data: initialData,
             backgroundColor: 'rgba(54, 162, 235, 0.8)',
             borderColor: 'rgba(54, 162, 235, 1)',
@@ -505,23 +487,12 @@
             pointHoverRadius: 6,
             showLine: true,
             tension: 0
-          }, {
-            label: 'Fitted Curve: S₀×exp(-TE/T₂)',
-            data: initialData.map(point => ({ ...point })), // Copy initial data
-            backgroundColor: 'rgba(255, 99, 132, 0.8)',
-            borderColor: 'rgba(255, 99, 132, 1)',
-            borderWidth: 2,
-            pointRadius: 2,
-            pointHoverRadius: 4,
-            showLine: true,
-            tension: 0,
-            borderDash: [5, 5] // Dashed line to distinguish from measured data
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: true,
-          aspectRatio: 1.33,
+          aspectRatio: 2,
           plugins: {
             legend: {
               display: true,
@@ -530,7 +501,7 @@
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return `TE: ${context.parsed.x.toFixed(1)} ms, Signal: ${context.parsed.y.toFixed(4)}`;
+                  return `TE: ${context.parsed.x}, Signal: ${context.parsed.y.toFixed(4)}`;
                 }
               }
             }
@@ -538,14 +509,9 @@
           scales: {
             x: {
               type: 'linear',
-              min: 0,
-              max: 150,
-              ticks: {
-                stepSize: 25
-              },
               title: {
                 display: true,
-                text: 'Echo Time (ms)',
+                text: 'Echo Time Index',
                 font: { size: 14, weight: 'bold' }
               },
               grid: { display: true, color: 'rgba(0, 0, 0, 0.1)' }
@@ -566,36 +532,6 @@
       });
     }
 
-    // Calculate fitted exponential curve S(TE) = S0 * exp(-TE/T2)
-    function calculateFittedCurve(s0Value, t2Value, teValues, images) {
-      if (s0Value === null || t2Value === null || t2Value <= 0 || !images) {
-        // Return zeros if invalid parameters
-        return teValues.map(te => ({ x: te, y: 0 }));
-      }
-      
-      // Get scale factors from the dataset, with fallbacks
-      const s0ScaleFactor = images.label_S0_scale_factor || 1; // Default to invivo scale
-      const t2ScaleFactor = images.label_T_scale_factor || 1;     // Default to invivo scale
-      const imageScaleFactor = images.images_scale_factor || 1; // Default to invivo scale
-      
-      // Convert T2 value back to original scale using dataset-specific factor
-      const t2Scaled = t2Value / t2ScaleFactor; // Convert from normalized back to original units
-      
-      // Convert S0 value back to original scale using dataset-specific factor  
-      const s0Scaled = s0Value / s0ScaleFactor * imageScaleFactor; // Convert from normalized back to original units
-      
-      // Print all these values out to the console for debugging
-      console.log(`S0 Value: ${s0Value}, T2 Value: ${t2Value}`);
-      console.log(`S0 Scaled: ${s0Scaled}, T2 Scaled: ${t2Scaled}`);  
-      console.log(`Scale Factors - S0: ${s0ScaleFactor}, T2: ${t2ScaleFactor}, Image: ${imageScaleFactor}`);
-
-
-      return teValues.map(te => ({
-        x: te,
-        y: s0Scaled * Math.exp(-te / (t2Scaled * 1000)) // T2 in seconds, TE in ms
-      }));
-    }
-
     // Update chart with new pixel data
     function updateChart(imgX, imgY) {
       if (!signalChart || currentImageArrays.length === 0 || 
@@ -604,11 +540,9 @@
         return;
       }
       
-      // Get actual TE values
-      const teValues = getTEValues();
-      
       // Extract values at coordinates from all image series
-      const measuredData = teValues.map((te, idx) => {
+      const echoTimes = Array.from({length: 10}, (_, i) => i);
+      const newData = echoTimes.map((te, idx) => {
         if (idx < currentImageArrays.length && 
             imgY < currentImageArrays[idx].length && 
             imgX < currentImageArrays[idx][imgY].length) {
@@ -617,37 +551,16 @@
         return { x: te, y: 0 };
       });
       
-      // Get S0 and T2 values at this pixel location
-      const s0Value = getPixelValue(currentS0Array, imgX, imgY);
-      const t2Value = getPixelValue(currentTArray, imgX, imgY);
-      
-      // Get current dataset images for scale factors
-      const images = getImageData(currentDatasetKey);
-      
-      // Calculate fitted curve using dataset-specific scale factors
-      const fittedData = calculateFittedCurve(s0Value, t2Value, teValues, images);
-      
       // Update chart data
-      signalChart.data.datasets[0].data = measuredData; // Measured signal
-      signalChart.data.datasets[1].data = fittedData;   // Fitted curve
+      signalChart.data.datasets[0].data = newData;
       signalChart.update('none');
       
       // Update chart title
-      document.getElementById('chart-title').textContent = `Signal Decay at Pixel (${imgX}, ${imgY})`;
+      document.getElementById('chart-title').textContent = `Signal Decay Curve at Pixel (${imgX}, ${imgY})`;
     }
 
-    // Get pixel value from array at coordinates
-    function getPixelValue(imageArray, x, y) {
-      if (imageArray.length === 0 || 
-          y < 0 || y >= imageArray.length || 
-          x < 0 || x >= imageArray[0].length) {
-        return null;
-      }
-      return imageArray[y][x];
-    }
-
-    // Handle mouse movement on any interactive image
-    function handleMouseMove(e, sourceWrapper, sourceImage, allCrosshairs, allCoordDisplays) {
+    // Handle mouse movement on parameter images
+    function handleMouseMove(e, sourceWrapper, sourceImage, sourceCrosshair, sourceCoordDisplay, linkedCrosshair, linkedCoordDisplay, linkedImage) {
       const rect = sourceImage.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -656,77 +569,34 @@
       const imgX = Math.floor((x / rect.width) * imageWidth);
       const imgY = Math.floor((y / rect.height) * imageHeight);
       
-      // Only update S0 and T crosshairs (first two in the array)
-      const parameterCrosshairs = allCrosshairs.slice(0, 2);
-      parameterCrosshairs.forEach((crosshair, index) => {
-        if (crosshair) {
-          const targetImage = index === 0 ? 
-            document.getElementById('s0-image') : 
-            document.getElementById('t-image');
-          
-          if (targetImage) {
-            const targetRect = targetImage.getBoundingClientRect();
-            const targetX = (imgX / imageWidth) * targetRect.width;
-            const targetY = (imgY / imageHeight) * targetRect.height;
-            
-            const vertical = crosshair.querySelector('.crosshair-vertical');
-            const horizontal = crosshair.querySelector('.crosshair-horizontal');
-            vertical.style.left = targetX + 'px';
-            horizontal.style.top = targetY + 'px';
-            crosshair.style.display = 'block';
-          }
-        }
-      });
+      // Update source crosshair position
+      const sourceVertical = sourceCrosshair.querySelector('.crosshair-vertical');
+      const sourceHorizontal = sourceCrosshair.querySelector('.crosshair-horizontal');
+      sourceVertical.style.left = x + 'px';
+      sourceHorizontal.style.top = y + 'px';
+      sourceCrosshair.style.display = 'block';
       
-      // Get pixel values for S0 and T images
-      const s0Value = getPixelValue(currentS0Array, imgX, imgY);
-      const tValue = getPixelValue(currentTArray, imgX, imgY);
+      // Update linked crosshair position
+      const linkedRect = linkedImage.getBoundingClientRect();
+      const linkedX = (imgX / imageWidth) * linkedRect.width;
+      const linkedY = (imgY / imageHeight) * linkedRect.height;
       
-      // Update coordinate displays with pixel coordinates and values
-      const s0Display = document.getElementById('s0-coord-display');
-      const tDisplay = document.getElementById('t-coord-display');
+      const linkedVertical = linkedCrosshair.querySelector('.crosshair-vertical');
+      const linkedHorizontal = linkedCrosshair.querySelector('.crosshair-horizontal');
+      linkedVertical.style.left = linkedX + 'px';
+      linkedHorizontal.style.top = linkedY + 'px';
+      linkedCrosshair.style.display = 'block';
       
-      if (s0Display) {
-        const s0Text = s0Value !== null ? 
-          `(${imgX}, ${imgY}): ${(s0Value * 255).toFixed(0)}` : 
-          `(${imgX}, ${imgY}): --`;
-        s0Display.textContent = s0Text;
-      } 
-      if (tDisplay) {
-        const tText = tValue !== null ? 
-          `(${imgX}, ${imgY}): ${(tValue * 255).toFixed(0)}` : 
-          `(${imgX}, ${imgY}): --`;
-        tDisplay.textContent = tText;
-      }
+      // Update coordinate displays
+      document.getElementById('s0-coord-display').textContent = `Pixel: (${imgX}, ${imgY})`;
+      document.getElementById('t-coord-display').textContent = `Pixel: (${imgX}, ${imgY})`;
+      
       // Update chart
       updateChart(imgX, imgY);
     }
-    
-    // Hide all crosshairs and clear coordinate displays
-    function hideAllCrosshairs(allCrosshairs, allCoordDisplays) {
-      // Only hide S0 and T crosshairs (first two in the array)
-      const parameterCrosshairs = allCrosshairs.slice(0, 2);
-      parameterCrosshairs.forEach(crosshair => {
-        if (crosshair) {
-          crosshair.style.display = 'none';
-        }
-      });
-      
-      // Set placeholder text to maintain layout
-      const s0Display = document.getElementById('s0-coord-display');
-      const tDisplay = document.getElementById('t-coord-display');
-      
-      if (s0Display) {
-        s0Display.textContent = ' '; // Single space placeholder
-      }
-      if (tDisplay) {
-        tDisplay.textContent = ' '; // Single space placeholder
-      }
-    }
 
-    // Set up mouse event listeners for all interactive images
+    // Set up mouse event listeners for interactive images
     function setupMouseListeners() {
-      // Get parameter image elements
       const s0Wrapper = document.getElementById('s0-param-wrapper');
       const s0Image = document.getElementById('s0-image');
       const s0Crosshair = document.getElementById('s0-crosshair');
@@ -737,88 +607,47 @@
       const tCrosshair = document.getElementById('t-crosshair');
       const tCoordDisplay = document.getElementById('t-coord-display');
       
-      // Get all image series elements
-      const imageSeriesWrappers = document.querySelectorAll('.imageseries-grid .image-wrapper');
-      
-      // Collect only parameter crosshairs and coordinate displays
-      const allCrosshairs = [s0Crosshair, tCrosshair];
-      const allCoordDisplays = [s0CoordDisplay, tCoordDisplay];
-      
       if (s0Wrapper && tWrapper) {
-        // Parameter image mouse events
-        [s0Wrapper, tWrapper].forEach(wrapper => {
-          const image = wrapper.querySelector('img');
-          
-          wrapper.addEventListener('mousemove', function(e) {
-            handleMouseMove(e, wrapper, image, allCrosshairs, allCoordDisplays);
-          });
-          
-          wrapper.addEventListener('mouseleave', function() {
-            hideAllCrosshairs(allCrosshairs, allCoordDisplays);
-          });
+        // S0 image mouse events
+        s0Wrapper.addEventListener('mousemove', function(e) {
+          handleMouseMove(e, s0Wrapper, s0Image, s0Crosshair, s0CoordDisplay, tCrosshair, tCoordDisplay, tImage);
         });
-      }
-      
-      // Image series mouse events (only if enabled) - no crosshairs, just cursor and chart updates
-      if (enableImageSeriesInteractivity) {
-        imageSeriesWrappers.forEach((wrapper, index) => {
-          const image = wrapper.querySelector('img');
-          
-          if (image) {
-            wrapper.addEventListener('mousemove', function(e) {
-              handleMouseMove(e, wrapper, image, allCrosshairs, allCoordDisplays);
-            });
-            
-            wrapper.addEventListener('mouseleave', function() {
-              hideAllCrosshairs(allCrosshairs, allCoordDisplays);
-            });
-          }
+        
+        s0Wrapper.addEventListener('mouseleave', function() {
+          s0CoordDisplay.textContent = '';
+          tCoordDisplay.textContent = '';
+          s0Crosshair.style.display = 'none';
+          tCrosshair.style.display = 'none';
+        });
+        
+        // T image mouse events
+        tWrapper.addEventListener('mousemove', function(e) {
+          handleMouseMove(e, tWrapper, tImage, tCrosshair, tCoordDisplay, s0Crosshair, s0CoordDisplay, s0Image);
+        });
+        
+        tWrapper.addEventListener('mouseleave', function() {
+          tCoordDisplay.textContent = '';
+          s0CoordDisplay.textContent = '';
+          tCrosshair.style.display = 'none';
+          s0Crosshair.style.display = 'none';
         });
       }
     }
 
     // Process image series data for current dataset
-    async function processImageSeries(images) {
+    function processImageSeries(images) {
       currentImageArrays = [];
-      currentS0Array = [];
-      currentTArray = [];
       
-      // Process S0 and T parameter maps
-      if (images.label_S0) {
-        try {
-          const s0ImageData = await decodeImageToArray(images.label_S0);
-          currentS0Array = imageDataToNormalizedArray(s0ImageData);
-        } catch (error) {
-          console.error('Error processing S0 image:', error);
-        }
-      }
-      
-      if (images.label_T) {
-        try {
-          const tImageData = await decodeImageToArray(images.label_T);
-          currentTArray = imageDataToNormalizedArray(tImageData);
-        } catch (error) {
-          console.error('Error processing T image:', error);
-        }
-      }
-      
-      // Decode all image_* arrays
+      // Directly use the array data (no decoding needed)
       for (let i = 0; i < 10; i++) {
         const imageKey = `image_${i}`;
         if (images[imageKey]) {
-          try {
-            const imageData = await decodeImageToArray(images[imageKey]);
-            const normalizedArray = imageDataToNormalizedArray(imageData);
-            currentImageArrays.push(normalizedArray);
-            
-            // Set dimensions from first image
-            if (i === 0) {
-              imageWidth = imageData.width;
-              imageHeight = imageData.height;
-            }
-          } catch (error) {
-            console.error(`Error processing image_${i}:`, error);
-            currentImageArrays.push([]);
+          currentImageArrays.push(images[imageKey]);
+          
+          // Set dimensions from first image
+          if (i === 0) {
+            imageHeight = images[imageKey].length;
+            imageWidth = images[imageKey][0].length;
           }
         }
       }
@@ -852,86 +681,64 @@
         imagesContainer.style.display = 'flex';
         noImagesMessage.style.display = 'none';
         
-        // Update S0 and T images
+        // Convert arrays to images and update S0 and T images
         const s0Image = document.getElementById('s0-image');
         const tImage = document.getElementById('t-image');
         
-        s0Image.src = `data:image/png;base64,${images.label_S0}`;
-        s0Image.alt = config.s0Alt;
+        if (images.label_S0) {
+            s0Image.src = arrayToImageSrc(images.label_S0);
+            s0Image.alt = config.s0Alt;
+        }
         
-        tImage.src = `data:image/png;base64,${images.label_T}`;
-        tImage.alt = config.tAlt;
+        if (images.label_T) {
+            tImage.src = arrayToImageSrc(images.label_T);
+            tImage.alt = config.tAlt;
+        }
         
         // Update image series grid images
         const imageseriesGrid = document.getElementById('imageseries-grid');
         imageseriesGrid.innerHTML = '';
         
         for (let i = 0; i < 10; i++) {
-          const imageKey = `image_${i}`;
-          if (images[imageKey]) {
-            // Create wrapper div (no crosshair overlay for echo series)
-            const wrapper = document.createElement('div');
-            wrapper.className = 'image-wrapper';
-            
-            // Create image element
-            const img = document.createElement('img');
-            img.src = `data:image/png;base64,${images[imageKey]}`;
-            img.alt = `${config.echoAltPrefix} ${i}`;
-            
-            wrapper.appendChild(img);
-            imageseriesGrid.appendChild(wrapper);
-          }
+            const imageKey = `image_${i}`;
+            if (images[imageKey]) {
+                const img = document.createElement('img');
+                img.src = arrayToImageSrc(images[imageKey]);
+                img.alt = `${config.echoAltPrefix} ${i}`;
+                imageseriesGrid.appendChild(img);
+            }
         }
         
-        // Process image series for interactive plotting
-        await processImageSeries(images);
+        // Process image series for interactive plotting (now synchronous)
+        processImageSeries(images);
         
-        // Setup mouse listeners after images are loaded
+        // Setup mouse listeners after processing
         setTimeout(setupMouseListeners, 100);
-        
       } else {
-        // Hide images container, show no-images message
-        imagesContainer.style.display = 'none';
+        // Show no-images message, hide images container
         noImagesMessage.style.display = 'block';
-        currentImageArrays = [];
+        imagesContainer.style.display = 'none';
       }
     }
 
-    // Function to toggle image series interactivity
-    function toggleImageSeriesInteractivity(enabled) {
-      enableImageSeriesInteractivity = enabled;
-      // Re-setup mouse listeners with new setting
-      if (currentDatasetKey) {
-        setTimeout(setupMouseListeners, 100);
-      }
-    }
+    // Initial setup: chart and first dataset
+    initializeChart();
+    updateContent(currentDatasetKey);
 
-    // Tab switching functionality
+    // Dataset tab navigation
     document.querySelectorAll('.tab-btn').forEach(button => {
-      button.addEventListener('click', () => {
-        const tabId = button.getAttribute('data-tab');
+      button.addEventListener('click', function() {
+        const datasetKey = this.getAttribute('data-tab');
         
-        // Remove active class from all tabs
+        // Update active tab
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
         
-        // Add active class to clicked tab
-        button.classList.add('active');
-        
-        // Update content based on selected tab
-        updateContent(tabId);
+        // Update content for selected dataset
+        updateContent(datasetKey);
       });
     });
-
-    // Initialize everything when DOM is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-      initializeChart();
-            
-      updateContent('invivo');
-    });
-
-    // Expose toggle function globally for external control
-    window.toggleImageSeriesInteractivity = toggleImageSeriesInteractivity;
     </script>
-
   </body>
 </html>
+
