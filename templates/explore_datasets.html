@@ -371,6 +371,7 @@
     <script id="invivo-data" type="application/json">{% if invivo_images %}{{ invivo_images | tojson | safe }}{% else %}null{% endif %}</script>
     <script id="imagenet-data" type="application/json">{% if imagenet_images %}{{ imagenet_images | tojson | safe }}{% else %}null{% endif %}</script>
     <script id="random-data" type="application/json">{% if urand_images %}{{ urand_images | tojson | safe }}{% else %}null{% endif %}</script>
+    <script id="te-values" type="application/json">{% if TE_vals %}{{ TE_vals | tojson | safe }}{% else %}null{% endif %}</script>
 
     <script>
     // Dataset configuration
@@ -438,6 +439,16 @@
       return null;
     }
 
+    // Load TE values from script tag
+    function getTEValues() {
+      const script = document.getElementById('te-values');
+      if (script && script.textContent.trim() !== 'null') {
+        return JSON.parse(script.textContent);
+      }
+      // Fallback to indices if TE values not available
+      return Array.from({length: 10}, (_, i) => i);
+    }
+
     // Decode base64 image to ImageData array
     function decodeImageToArray(base64ImageData) {
       return new Promise((resolve) => {
@@ -475,17 +486,17 @@
     function initializeChart() {
       const ctx = document.getElementById('signalChart').getContext('2d');
       
-      // Create echo time array (10 echo times from 0 to 9)
-      const echoTimes = Array.from({length: 10}, (_, i) => i);
+      // Get actual TE values
+      const teValues = getTEValues();
       
       // Initial data (will be updated when mouse moves)
-      const initialData = echoTimes.map(te => ({ x: te, y: 0 }));
+      const initialData = teValues.map(te => ({ x: te, y: 0 }));
       
       signalChart = new Chart(ctx, {
         type: 'line',
         data: {
           datasets: [{
-            label: 'Signal Intensity',
+            label: 'Signal Intensity (normalized)',
             data: initialData,
             backgroundColor: 'rgba(54, 162, 235, 0.8)',
             borderColor: 'rgba(54, 162, 235, 1)',
@@ -499,7 +510,7 @@
         options: {
           responsive: true,
           maintainAspectRatio: true,
-          aspectRatio: 2,
+          aspectRatio: 1.33,
           plugins: {
             legend: {
               display: true,
@@ -508,7 +519,7 @@
             tooltip: {
               callbacks: {
                 label: function(context) {
-                  return `TE: ${context.parsed.x}, Signal: ${context.parsed.y.toFixed(4)}`;
+                  return `TE: ${context.parsed.x.toFixed(1)} ms, Signal: ${context.parsed.y.toFixed(4)}`;
                 }
               }
             }
@@ -516,9 +527,14 @@
           scales: {
             x: {
               type: 'linear',
+              min: 0,
+              max: 150,
+              ticks: {
+                stepSize: 25
+              },
               title: {
                 display: true,
-                text: 'Echo Time Index',
+                text: 'Echo Time (ms)',
                 font: { size: 14, weight: 'bold' }
               },
               grid: { display: true, color: 'rgba(0, 0, 0, 0.1)' }
@@ -547,9 +563,11 @@
         return;
       }
       
+      // Get actual TE values
+      const teValues = getTEValues();
+      
       // Extract values at coordinates from all image series
-      const echoTimes = Array.from({length: 10}, (_, i) => i);
-      const newData = echoTimes.map((te, idx) => {
+      const newData = teValues.map((te, idx) => {
         if (idx < currentImageArrays.length && 
             imgY < currentImageArrays[idx].length && 
             imgX < currentImageArrays[idx][imgY].length) {

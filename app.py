@@ -225,15 +225,15 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
     if dataset.lower().startswith("synth"):
         is_synth = True
         prefix = "synth"    
-        S0_vmin, S0_vmax = 0, 1
-        T_vmin, T_vmax = 0, 4
-        imgseries_vmin, imgseries_vmax = 0.1, 0.8  # Assuming normalized input images
+        S0_vmax = 1
+        T_vmax = 4
+        imgseries_display_scaling = 1.2  # Display scaling after normalization
     else:
         is_synth = False
         prefix = "invivo"
-        S0_vmin, S0_vmax = 0, 0.75
-        T_vmin, T_vmax = 0, 2
-        imgseries_vmin, imgseries_vmax = 0, .25  # Assuming normalized input images
+        S0_vmax = 0.75
+        T_vmax = 2
+        imgseries_display_scaling = 3  # Display scaling after normalization
 
     result = {}
     if type == "image_series":
@@ -249,7 +249,11 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
         img3d = img.get_fdata()
 
         img3d = img3d[:,:,0,:].squeeze()
-        img3d = img3d / img3d.max() # normalize
+
+        # Normalize the image series
+        scale_factor = 1/img3d.max()
+        img3d = img3d * scale_factor * imgseries_display_scaling
+        result['image_scale_factor'] = scale_factor * imgseries_display_scaling
 
         num_volumes = img3d.shape[2]
         for i in range(num_volumes):
@@ -270,8 +274,11 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
         img = nib.load(label_file)
         data = img.get_fdata()
         
-        result['label_S0'] = data[:, :, 0, 0]  # S0 parameter
-        result['label_T'] = data[:, :, 0, 1] # T parameter
+        # Normalize for display, but save the original scaling factors
+        result['label_S0'] = data[:, :, 0, 0] / S0_vmax  # S0 parameter
+        result['label_T'] = data[:, :, 0, 1] / T_vmax# T parameter
+        result['label_S0_scale_factor'] = 1 / S0_vmax
+        result['label_T_scale_factor'] = 1 / T_vmax
  
     elif type == "prediction":
         # Load prediction results
@@ -291,6 +298,12 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
         
         result['pred_S0'] = data[:, :, 0, 0]  # S0 parameter
         result['pred_T'] = data[:, :, 0, 1] if data.shape[3] > 1 else data[:, :, 0, 0]  # T parameter
+
+                # Normalize for display, but save the original scaling factors
+        result['pred_S0'] = data[:, :, 0, 0] / S0_vmax  # S0 parameter
+        result['pred_T'] = data[:, :, 0, 1] / T_vmax# T parameter
+        result['pred_S0_scale_factor'] = 1 / S0_vmax
+        result['pred_T_scale_factor'] = 1 / T_vmax
         
     else:
         raise ValueError(f"Unknown type: {type}. Must be 'image_series', 'label', or 'prediction'")
@@ -299,20 +312,15 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
     base64_data = {}
     for key, array in result.items():
         # Determine scaling and colormap based on image type
-        if 'image' in key:
-            # Synth images: use same scaling as S0 (0-1) and grayscale
-            vmin, vmax = imgseries_vmin, imgseries_vmax
-            cmap = 'gray'
-        elif 'S0' in key:
-            vmin, vmax = S0_vmin, S0_vmax
-            cmap = 'gray'
-        else:  # 'T' parameter
-            vmin, vmax = T_vmin, T_vmax
-            cmap = 'viridis'
+        if key.endswith('_scale_factor'):
+            continue  # Skip scale factor entries
+
+        # Colormap. Make T values 
+        cmap = 'viridis' if key.endswith('_T') else 'gray'
         
         # Normalize the array to 0-255 range
-        normalized = np.clip((array - vmin) / (vmax - vmin), 0, 1)
-        normalized = (normalized * 255).astype(np.uint8)
+        normalized = np.clip(array, 0, 1)
+        normalized = (normalized * 255).astype(np.uint8)        
         
         # Apply rotation if specified (k=-rotation means clockwise)
         if rotation != 0:
@@ -467,12 +475,16 @@ def explore_datasets():
     # Display only the invivo images
     images = invivo_images
 
+    # Return also the echo time values. Hardwired
+    TE_vals = [26.4 + i * 13.2 for i in range(10)]   
+
     return render_template('explore_datasets.html', 
                           images=images, 
                           imagenet_images=imagenet_images,
                           urand_images=urand_images,
                           invivo_images=invivo_images,
-                          dataset_type='invivo')
+                          dataset_type='invivo', 
+                          TE_vals=TE_vals)
 
 
 @app.route('/invivo_datasets')
