@@ -313,6 +313,7 @@ def load_images_2(dataset, case_id, type, method=None, rotation=1):
     for key, array in result.items():
         # Determine scaling and colormap based on image type
         if key.endswith('_scale_factor'):
+            base64_data[key] = array # Just pass through scale factors
             continue  # Skip scale factor entries
 
         # Colormap. Make T values 

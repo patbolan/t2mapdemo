@@ -496,7 +496,7 @@
         type: 'line',
         data: {
           datasets: [{
-            label: 'Signal Intensity (normalized)',
+            label: 'Measured Signal',
             data: initialData,
             backgroundColor: 'rgba(54, 162, 235, 0.8)',
             borderColor: 'rgba(54, 162, 235, 1)',
@@ -505,6 +505,17 @@
             pointHoverRadius: 6,
             showLine: true,
             tension: 0
+          }, {
+            label: 'Fitted Curve: S₀×exp(-TE/T₂)',
+            data: initialData.map(point => ({ ...point })), // Copy initial data
+            backgroundColor: 'rgba(255, 99, 132, 0.8)',
+            borderColor: 'rgba(255, 99, 132, 1)',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHoverRadius: 4,
+            showLine: true,
+            tension: 0,
+            borderDash: [5, 5] // Dashed line to distinguish from measured data
           }]
         },
         options: {
@@ -555,6 +566,36 @@
       });
     }
 
+    // Calculate fitted exponential curve S(TE) = S0 * exp(-TE/T2)
+    function calculateFittedCurve(s0Value, t2Value, teValues, images) {
+      if (s0Value === null || t2Value === null || t2Value <= 0 || !images) {
+        // Return zeros if invalid parameters
+        return teValues.map(te => ({ x: te, y: 0 }));
+      }
+      
+      // Get scale factors from the dataset, with fallbacks
+      const s0ScaleFactor = images.label_S0_scale_factor || 1; // Default to invivo scale
+      const t2ScaleFactor = images.label_T_scale_factor || 1;     // Default to invivo scale
+      const imageScaleFactor = images.images_scale_factor || 1; // Default to invivo scale
+      
+      // Convert T2 value back to original scale using dataset-specific factor
+      const t2Scaled = t2Value / t2ScaleFactor; // Convert from normalized back to original units
+      
+      // Convert S0 value back to original scale using dataset-specific factor  
+      const s0Scaled = s0Value / s0ScaleFactor * imageScaleFactor; // Convert from normalized back to original units
+      
+      // Print all these values out to the console for debugging
+      console.log(`S0 Value: ${s0Value}, T2 Value: ${t2Value}`);
+      console.log(`S0 Scaled: ${s0Scaled}, T2 Scaled: ${t2Scaled}`);  
+      console.log(`Scale Factors - S0: ${s0ScaleFactor}, T2: ${t2ScaleFactor}, Image: ${imageScaleFactor}`);
+
+
+      return teValues.map(te => ({
+        x: te,
+        y: s0Scaled * Math.exp(-te / (t2Scaled * 1000)) // T2 in seconds, TE in ms
+      }));
+    }
+
     // Update chart with new pixel data
     function updateChart(imgX, imgY) {
       if (!signalChart || currentImageArrays.length === 0 || 
@@ -567,7 +608,7 @@
       const teValues = getTEValues();
       
       // Extract values at coordinates from all image series
-      const newData = teValues.map((te, idx) => {
+      const measuredData = teValues.map((te, idx) => {
         if (idx < currentImageArrays.length && 
             imgY < currentImageArrays[idx].length && 
             imgX < currentImageArrays[idx][imgY].length) {
@@ -576,12 +617,23 @@
         return { x: te, y: 0 };
       });
       
+      // Get S0 and T2 values at this pixel location
+      const s0Value = getPixelValue(currentS0Array, imgX, imgY);
+      const t2Value = getPixelValue(currentTArray, imgX, imgY);
+      
+      // Get current dataset images for scale factors
+      const images = getImageData(currentDatasetKey);
+      
+      // Calculate fitted curve using dataset-specific scale factors
+      const fittedData = calculateFittedCurve(s0Value, t2Value, teValues, images);
+      
       // Update chart data
-      signalChart.data.datasets[0].data = newData;
+      signalChart.data.datasets[0].data = measuredData; // Measured signal
+      signalChart.data.datasets[1].data = fittedData;   // Fitted curve
       signalChart.update('none');
       
       // Update chart title
-      document.getElementById('chart-title').textContent = `Signal Decay Curve at Pixel (${imgX}, ${imgY})`;
+      document.getElementById('chart-title').textContent = `Signal Decay at Pixel (${imgX}, ${imgY})`;
     }
 
     // Get pixel value from array at coordinates
