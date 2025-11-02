@@ -1,8 +1,8 @@
 ** CURRENT WORKING **
-Initial interaction is working. 
-- scaling is off
-- add zoom/pan
-- Add the noisy data to the plot
+Had to redo how data is transfered back to front. Now it's json arrays. 
+Now it all works with plotting and figures. 
+Fine tune this page, add text. Finalize!!!
+- will need to  extract some javascript utils into their own file
 
 
 

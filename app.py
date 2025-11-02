@@ -23,6 +23,7 @@ def load_images(dataset, case_id, type, method=None):
     """
     More general image loading function that will eventually replace load_images().
     This version returns the images as base64 encoded PNG strings for direct embedding in HTML.
+    This code handles the rotations for the prostate data
     
     Args:
         dataset (str): Dataset name (e.g., "IMAGENET_TEST_1k", "INVIVO2D_SET3")
@@ -41,9 +42,11 @@ def load_images(dataset, case_id, type, method=None):
     if dataset.lower().startswith("synth"):
         is_synth = True
         prefix = "synth"    
+        rotations = 0
     else:
         is_synth = False
         prefix = "invivo"
+        rotations = 1
 
     result = {}
     if type == "image_series":
@@ -60,10 +63,14 @@ def load_images(dataset, case_id, type, method=None):
 
         img3d = img3d[:,:,0,:].squeeze()
 
+        if not is_synth:
+            # Normalize invivo data to [0,1]
+            img3d = img3d / np.max(img3d) 
+
         num_volumes = img3d.shape[2]
         for i in range(num_volumes):
-            result[f'image_{i}'] = img3d[:, :, i]
-            
+            result[f'image_{i}'] = np.rot90(img3d[:, :, i], k=rotations)
+
     elif type == "label":
         # Load ground truth parametric maps from labels folder
         labels_dir = f"static/datasets/{dataset}/labels"
@@ -79,8 +86,8 @@ def load_images(dataset, case_id, type, method=None):
         img = nib.load(label_file)
         data = img.get_fdata()
         
-        result['label_S0'] = data[:, :, 0, 0] # S0 parameter
-        result['label_T'] = data[:, :, 0, 1] # T parameter
+        result['label_S0'] = np.rot90(data[:, :, 0, 0], k=rotations) # S0 parameter
+        result['label_T'] = np.rot90(data[:, :, 0, 1], k=rotations) # T parameter
 
  
     elif type == "prediction":
@@ -99,8 +106,8 @@ def load_images(dataset, case_id, type, method=None):
         img = nib.load(pred_file)
         data = img.get_fdata()
         
-        result['pred_S0'] = data[:, :, 0, 0]  # S0 parameter
-        result['pred_T'] = data[:, :, 0, 1] 
+        result['pred_S0'] = np.rot90(data[:, :, 0, 0], k=rotations)  # S0 parameter
+        result['pred_T'] = np.rot90(data[:, :, 0, 1], k=rotations) 
         
     else:
         raise ValueError(f"Unknown type: {type}. Must be 'image_series', 'label', or 'prediction'")
@@ -165,6 +172,7 @@ def explore_datasets():
     # Load image series for InVivo
     invivo_series = load_images(dataset_name, case_id, "image_series")
     
+    
     # Not actually labels for invivo, but predictions from FIT_NLLS
     invivo_preds = load_images(dataset_name.upper(), case_id, type="prediction", method="FIT_NLLS")
     
@@ -187,7 +195,6 @@ def explore_datasets():
                           urand_imageset=urand_imageset,
                           invivo_imageset=invivo_imageset, 
                           TE_vals=TE_vals)
-
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
