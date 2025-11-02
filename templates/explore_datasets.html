@@ -159,7 +159,6 @@
         font-size: 0.9rem;
         font-weight: bold;
         color: var(--accent);
-        text-transform: uppercase;
         letter-spacing: 0.5px;
       }
       .image-container {
@@ -306,7 +305,7 @@
               <div class="maps-container">
                 <div class="image-container">
                   <div class="image-title">
-                    <div style="font-size: 1.1em;">S0 Parameter</div>
+                    <div style="font-size: 1.1em;">S0 Parameter Map</div>
                     <div style="font-size: 0.9em;" id="s0-subtitle"><!-- Dynamic Subtitle --></div>
                   </div>
                   <div class="image-wrapper" id="s0-param-wrapper">
@@ -316,12 +315,11 @@
                       <div class="crosshair-horizontal"></div>
                     </div>
                   </div>
-                  <div class="coord-display" id="s0-coord-display"></div>
                 </div>
                 
                 <div class="image-container">
                   <div class="image-title">
-                    <div style="font-size: 1.1em;">T Parameter</div>
+                    <div style="font-size: 1.1em;">T Parameter Map</div>
                     <div style="font-size: 0.9em;" id="t-subtitle"><!-- Dynamic Subtitle --></div>
                   </div>
                   <div class="image-wrapper" id="t-param-wrapper">
@@ -331,7 +329,6 @@
                       <div class="crosshair-horizontal"></div>
                     </div>
                   </div>
-                  <div class="coord-display" id="t-coord-display"></div>
                 </div>
                 </div>
 
@@ -380,14 +377,14 @@
       invivo: {
         title: 'In Vivo Dataset',
         description: 'Below are the reference parametric maps for S0 and T parameters from an in vivo case (000198).',
-        s0Subtitle: 'Reference (Labels)',
-        tSubtitle: 'Reference (Labels)',
-        imageseriesTitle: 'Multi-Echo Image Series',
+        s0Subtitle: '(from NLLS fit)',
+        tSubtitle: '(from NLLS fit)',
+        imageseriesTitle: 'Measured Multi-Echo Image Series',
         s0Alt: 'In Vivo S0',
         tAlt: 'In Vivo T',
         echoAltPrefix: 'Echo',
         arrowDirection: 'up',
-        arrowText: 'curve fit',
+        arrowText: 'NLLS Curve Fitting',
         detailsText: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.'
       },
       imagenet: {
@@ -395,12 +392,12 @@
         description: 'Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using ImageNet-based synthetic data.',
         s0Subtitle: 'Ground Truth',
         tSubtitle: 'Ground Truth',
-        imageseriesTitle: 'Synthetic Multi-Echo Series',
+        imageseriesTitle: 'Synthetic Multi-Echo Image Series',
         s0Alt: 'ImageNet S0',
         tAlt: 'ImageNet T',
         echoAltPrefix: 'Synth',
         arrowDirection: 'down',
-        arrowText: 'synthesize',
+        arrowText: 'Synthesize w/noise',
         detailsText: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium.'
       },
       random: {
@@ -408,12 +405,12 @@
         description: 'Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using randomly generated synthetic data.',
         s0Subtitle: 'Ground Truth',
         tSubtitle: 'Ground Truth',
-        imageseriesTitle: 'Synthetic Multi-Echo Series',
+        imageseriesTitle: 'Synthetic Multi-Echo Image Series',
         s0Alt: 'Random S0',
         tAlt: 'Random T',
         echoAltPrefix: 'Random',
         arrowDirection: 'down',
-        arrowText: 'synthesize',
+        arrowText: 'Synthesize w/noise',
         detailsText: 'But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium.'
       }
     };
@@ -640,7 +637,7 @@
     }
 
     // Handle mouse movement on parameter images
-    function handleMouseMove(e, sourceWrapper, sourceImage, sourceCrosshair, sourceCoordDisplay, linkedCrosshair, linkedCoordDisplay, linkedImage) {
+    function handleMouseMove(e, sourceWrapper, sourceImage, sourceCrosshair, linkedCrosshair, linkedImage) {
       const rect = sourceImage.getBoundingClientRect();
       const x = e.clientX - rect.left;
       const y = e.clientY - rect.top;
@@ -671,30 +668,6 @@
       const images = getImageData(currentDatasetKey);
       
 
-      // Optional display of coordinates and values below images. 
-      const displayCoordinates = false;      
-      if (displayCoordinates) {
-        // Update coordinate displays with pixel coordinates and values
-        const s0Display = document.getElementById('s0-coord-display');
-        const tDisplay = document.getElementById('t-coord-display');
-
-        if (s0Display && images && images.label_S0) {
-          const s0Value = getPixelValue(images.label_S0, imgX, imgY);
-          const s0Text = s0Value !== null ? 
-            `(${imgX}, ${imgY}): ${s0Value.toFixed(2)}` : 
-            `(${imgX}, ${imgY}): --`;
-          s0Display.textContent = s0Text;
-        }
-        
-        if (tDisplay && images && images.label_T) {
-          const tValue = getPixelValue(images.label_T, imgX, imgY);
-          const tText = tValue !== null ? 
-            `(${imgX}, ${imgY}): ${tValue.toFixed(2)}` : 
-            `(${imgX}, ${imgY}): --`;
-          tDisplay.textContent = tText;
-        }
-      }
-
       // Update chart
       updateChart(imgX, imgY);
     }
@@ -714,34 +687,28 @@
       const s0Wrapper = document.getElementById('s0-param-wrapper');
       const s0Image = document.getElementById('s0-image');
       const s0Crosshair = document.getElementById('s0-crosshair');
-      const s0CoordDisplay = document.getElementById('s0-coord-display');
       
       const tWrapper = document.getElementById('t-param-wrapper');
       const tImage = document.getElementById('t-image');
       const tCrosshair = document.getElementById('t-crosshair');
-      const tCoordDisplay = document.getElementById('t-coord-display');
       
       if (s0Wrapper && tWrapper) {
         // S0 image mouse events
         s0Wrapper.addEventListener('mousemove', function(e) {
-          handleMouseMove(e, s0Wrapper, s0Image, s0Crosshair, s0CoordDisplay, tCrosshair, tCoordDisplay, tImage);
+          handleMouseMove(e, s0Wrapper, s0Image, s0Crosshair, tCrosshair, tImage);
         });
         
         s0Wrapper.addEventListener('mouseleave', function() {
-          s0CoordDisplay.textContent = ' '; // Space placeholder to prevent layout shift
-          tCoordDisplay.textContent = ' ';  // Space placeholder to prevent layout shift
           s0Crosshair.style.display = 'none';
           tCrosshair.style.display = 'none';
         });
         
         // T image mouse events
         tWrapper.addEventListener('mousemove', function(e) {
-          handleMouseMove(e, tWrapper, tImage, tCrosshair, tCoordDisplay, s0Crosshair, s0CoordDisplay, s0Image);
+          handleMouseMove(e, tWrapper, tImage, tCrosshair, s0Crosshair, s0Image);
         });
         
         tWrapper.addEventListener('mouseleave', function() {
-          tCoordDisplay.textContent = ' '; // Space placeholder to prevent layout shift
-          s0CoordDisplay.textContent = ' '; // Space placeholder to prevent layout shift
           tCrosshair.style.display = 'none';
           s0Crosshair.style.display = 'none';
         });
