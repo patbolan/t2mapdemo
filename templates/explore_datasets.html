@@ -505,7 +505,7 @@
         type: 'line',
         data: {
           datasets: [{
-            label: 'Signal Intensity',
+            label: 'Measured Signal',
             data: initialData,
             backgroundColor: 'rgba(54, 162, 235, 0.8)',
             borderColor: 'rgba(54, 162, 235, 1)',
@@ -516,7 +516,7 @@
             tension: 0
           },
           {
-            label: 'Fit',
+            label: 'NLLS Fit',
             data: [],
             backgroundColor: 'rgba(255, 0, 0, 0)',
             borderColor: 'rgba(255, 0, 0, 1)',
@@ -533,7 +533,24 @@
           plugins: {
             legend: {
               display: true,
-              position: 'top'
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                generateLabels: function(chart) {
+                  const datasets = chart.data.datasets;
+                  return datasets.map((dataset, i) => {
+                    return {
+                      text: dataset.label,
+                      fillStyle: dataset.borderColor,
+                      strokeStyle: dataset.borderColor,
+                      lineWidth: dataset.borderWidth,
+                      pointStyle: i === 0 ? 'circle' : 'line',
+                      hidden: !chart.isDatasetVisible(i),
+                      datasetIndex: i
+                    };
+                  });
+                }
+              }
             },
             tooltip: {
               callbacks: {
@@ -548,7 +565,7 @@
               type: 'linear',
               title: {
                 display: true,
-                text: 'Echo Time (ms)',
+                text: 'TE (ms)',
                 font: { size: 14, weight: 'bold' }
               },
               min: 0,
@@ -561,7 +578,7 @@
             y: {
               title: {
                 display: true,
-                text: 'Signal Intensity',
+                text: 'Signal Intensity (arbitrary units)',
                 font: { size: 14, weight: 'bold' }
               },
               grid: { display: true, color: 'rgba(0, 0, 0, 0.1)' },
@@ -653,26 +670,31 @@
       // Get current dataset images for pixel value lookup
       const images = getImageData(currentDatasetKey);
       
-      // Update coordinate displays with pixel coordinates and values
-      const s0Display = document.getElementById('s0-coord-display');
-      const tDisplay = document.getElementById('t-coord-display');
-      
-      if (s0Display && images && images.label_S0) {
-        const s0Value = getPixelValue(images.label_S0, imgX, imgY);
-        const s0Text = s0Value !== null ? 
-          `(${imgX}, ${imgY}): ${s0Value.toFixed(2)}` : 
-          `(${imgX}, ${imgY}): --`;
-        s0Display.textContent = s0Text;
+
+      // Optional display of coordinates and values below images. 
+      const displayCoordinates = false;      
+      if (displayCoordinates) {
+        // Update coordinate displays with pixel coordinates and values
+        const s0Display = document.getElementById('s0-coord-display');
+        const tDisplay = document.getElementById('t-coord-display');
+
+        if (s0Display && images && images.label_S0) {
+          const s0Value = getPixelValue(images.label_S0, imgX, imgY);
+          const s0Text = s0Value !== null ? 
+            `(${imgX}, ${imgY}): ${s0Value.toFixed(2)}` : 
+            `(${imgX}, ${imgY}): --`;
+          s0Display.textContent = s0Text;
+        }
+        
+        if (tDisplay && images && images.label_T) {
+          const tValue = getPixelValue(images.label_T, imgX, imgY);
+          const tText = tValue !== null ? 
+            `(${imgX}, ${imgY}): ${tValue.toFixed(2)}` : 
+            `(${imgX}, ${imgY}): --`;
+          tDisplay.textContent = tText;
+        }
       }
-      
-      if (tDisplay && images && images.label_T) {
-        const tValue = getPixelValue(images.label_T, imgX, imgY);
-        const tText = tValue !== null ? 
-          `(${imgX}, ${imgY}): ${tValue.toFixed(2)}` : 
-          `(${imgX}, ${imgY}): --`;
-        tDisplay.textContent = tText;
-      }
-      
+
       // Update chart
       updateChart(imgX, imgY);
     }
@@ -813,6 +835,18 @@
                 img.alt = `${config.echoAltPrefix} ${i}`;
                 imageseriesGrid.appendChild(img);
             }
+        }
+        
+        // Update chart labels based on dataset type
+        if (signalChart) {
+          if (datasetKey === 'invivo') {
+            signalChart.data.datasets[0].label = 'Measured Signal';
+            signalChart.data.datasets[1].label = 'NLLS Fit';
+          } else {
+            signalChart.data.datasets[0].label = 'Synthetic Signal + noise';
+            signalChart.data.datasets[1].label = 'Ground Truth';
+          }
+          signalChart.update('none');
         }
         
         // Process image series for interactive plotting (now synchronous)
