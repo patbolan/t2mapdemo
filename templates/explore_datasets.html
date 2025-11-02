@@ -771,9 +771,9 @@
         
         if (datasetKey === 'invivo') {
             // In vivo specific settings
-            s0Min = 0; s0Max = 0.5;  
+            s0Min = 0; s0Max = 0.4;  
             tMin = 0; tMax = 2;    
-            imgMin = 0; imgMax = 0.5;
+            imgMin = 0; imgMax = 0.4;
         } // else keep defaults for synthetic datasets
         
         // Convert arrays to images and update S0 and T images
@@ -809,9 +809,11 @@
           if (datasetKey === 'invivo') {
             signalChart.data.datasets[0].label = 'Measured Signal';
             signalChart.data.datasets[1].label = 'NLLS Fit';
+            signalChart.options.scales.y.max = 0.5;
           } else {
             signalChart.data.datasets[0].label = 'Synthetic Signal + noise';
             signalChart.data.datasets[1].label = 'Ground Truth';
+            signalChart.options.scales.y.max = 1.0;
           }
           signalChart.update('none');
         }
