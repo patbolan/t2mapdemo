@@ -1,8 +1,7 @@
 ** CURRENT WORKING **
 Had to redo how data is transfered back to front. Now it's json arrays. 
-Now it all works with plotting and figures. 
+Implemented but then backed off of the zoom/pan. Got complicated, but in code and UI
 Fine tune this page, add text. Finalize!!!
-Zoom, pan, interaction on the echo series
 - will need to  extract some javascript utils into their own file
 
 

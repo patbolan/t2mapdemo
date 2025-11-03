@@ -8,6 +8,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}">
     <!-- Chart.js for interactive plotting -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
       /* Page-specific styles */
       body { 
@@ -72,13 +76,7 @@
         border-radius: 8px;
         padding: 2rem;
       }
-      .dataset-title {
-        margin: 0 0 1rem 0;
-        color: #333;
-        font-size: 1.5rem;
-        border-bottom: 2px solid #dee2e6;
-        padding-bottom: 0.5rem;
-      }
+      
       .dataset-description {
         margin: 1rem 0 2rem 0;
         line-height: 1.6;
@@ -275,11 +273,11 @@
   <body>
     <a href="/" class="back-link">← Back to Home</a>
     
-    <h1>Representative Datasets</h1>
+    <h1>Explore Datasets</h1>
     
     <div class="info-box">
       <p><strong>About the Datasets</strong></p>
-      <p>This page provides an interactive display for exploring the three sample datasets shown in 
+      <p>This page provides an interactive display for exploring the three kinds of datasets shown in 
         <a href="https://link.springer.com/article/10.1007/s10334-024-01186-3/figures/1">Figure 1</a> 
         of the paper. Click the tabs below to explore all three.</p>   
     </div>
@@ -295,7 +293,6 @@
       <!-- Tab Content: Single Dynamic Template -->
       <div class="tab-content active" id="dynamic-content">
         <div class="dataset-card">
-          <h2 class="dataset-title" id="dataset-title"><!-- Dynamic Title --></h2>
           <div class="dataset-description">
             <p id="dataset-description"><!-- Dynamic Description --></p>
           </div>
@@ -305,7 +302,7 @@
               <div class="maps-container">
                 <div class="image-container">
                   <div class="image-title">
-                    <div style="font-size: 1.1em;">S0 Parameter Map</div>
+                    <div style="font-size: 1.1em;">$S_0$ Parameter Map</div>
                     <div style="font-size: 0.9em;" id="s0-subtitle"><!-- Dynamic Subtitle --></div>
                   </div>
                   <div class="image-wrapper" id="s0-param-wrapper">
@@ -319,7 +316,7 @@
                 
                 <div class="image-container">
                   <div class="image-title">
-                    <div style="font-size: 1.1em;">T Parameter Map</div>
+                    <div style="font-size: 1.1em;">$T_2$ Parameter Map</div>
                     <div style="font-size: 0.9em;" id="t-subtitle"><!-- Dynamic Subtitle --></div>
                   </div>
                   <div class="image-wrapper" id="t-param-wrapper">
@@ -375,43 +372,62 @@
     // Dataset configuration
     const datasetConfig = {
       invivo: {
-        title: 'In Vivo Dataset',
-        description: 'Below are the reference parametric maps for S0 and T parameters from an in vivo case (000198).',
+        title: 'In Vivo Dataset', // Not used
+        description: `This is an example of a single slice from an <i>in vivo</i> $T_2$ measurement. The standard approach is 
+          to use curve fitting to produce the $T_2$ map, which can then be used for human interpretation diagnosis and/or 
+          cancer prediction models.`,
         s0Subtitle: '(from NLLS fit)',
         tSubtitle: '(from NLLS fit)',
         imageseriesTitle: 'Measured Multi-Echo Image Series',
         s0Alt: 'In Vivo S0',
-        tAlt: 'In Vivo T',
+        tAlt: 'In Vivo T2',
         echoAltPrefix: 'Echo',
         arrowDirection: 'up',
         arrowText: 'NLLS Curve Fitting',
-        detailsText: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.'
+        detailsText: `The same slice is measured at ten different echo times (lower left) with signal progressively 
+          decreasing. Each pixel is fit using a non-linear least squares (NLLS) method to the equation 
+          $S(TE) = S_0 \\exp(-TE/T_2)$. The resulting maps for $S_0$ and $T_2$ are shown on the upper left. Dragging your mouse over 
+          these maps shows the signal and fit for each pixel in the images.`
       },
       imagenet: {
         title: 'ImageNet Synthetic Dataset',
-        description: 'Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using ImageNet-based synthetic data.',
+        description: `This is an example of a synthetic dataset. A novel aspect of this paper is the generation of a large amount 
+          of synthetic imaging data for supervised training.`,
         s0Subtitle: 'Ground Truth',
         tSubtitle: 'Ground Truth',
         imageseriesTitle: 'Synthetic Multi-Echo Image Series',
         s0Alt: 'ImageNet S0',
-        tAlt: 'ImageNet T',
+        tAlt: 'ImageNet T2',
         echoAltPrefix: 'Synth',
         arrowDirection: 'down',
         arrowText: 'Synthesize w/noise',
-        detailsText: 'Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium, totam rem aperiam eaque ipsa. Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit. At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium.'
+        detailsText: `To synthesize data, random images were selected from a public image dataset 
+          (<a href="https://www.image-net.org/">ImageNet</a>) and used to represent 
+          ground truth parameter maps S0 and T2. From these, a multi-echo image series was synthesized using the same 
+          equation ($S(TE) = S_0 \\exp(-TE/T_2)$) and by adding noise to the images following the physics of MR image 
+          generation (i.e., Rician noise).
+          <p>The networks were trained using 10,000 synthetic image sets with random images and variable noise levels. In this way 
+          the networks do not learn about prostates, or elephants and dogs, rather they learn the physical equation  and how to accurately 
+          generate the parameter maps $S_0$ and $T_2$  from the noisy images $S(TE)$.`
       },
       random: {
         title: 'Random Synthetic Dataset',
-        description: 'Below are the reference (ground truth) parametric maps for S0 and T parameters from case 000066 using randomly generated synthetic data.',
+        description: `This is also an example of synthetic dataset, but generated using parametric maps of randomly generated uniform noise 
+          rather than images from ImageNet.`,
         s0Subtitle: 'Ground Truth',
         tSubtitle: 'Ground Truth',
         imageseriesTitle: 'Synthetic Multi-Echo Image Series',
         s0Alt: 'Random S0',
-        tAlt: 'Random T',
+        tAlt: 'Random T2',
         echoAltPrefix: 'Random',
         arrowDirection: 'down',
         arrowText: 'Synthesize w/noise',
-        detailsText: 'But I must explain to you how all this mistaken idea of denouncing pleasure and praising pain was born. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium.'
+        detailsText: `This dataset is generated in exactly the same way as the ImageNet synthetic dataset, by modeling 
+        the exponential decay and adding physics-guided noise. This dataset was used to explore how CNNs perform 
+        denoising. In the ImageNet data, pixel values are somewhat correlated with neighboring pixels, and this 
+        information can help estimating parameters in noisy data. Models trained using these purely random images 
+        were expected to provide poorer denoising performance because they cannot exploit spatial correlation 
+        between neighboring pixels.`
       }
     };
 
@@ -562,7 +578,7 @@
               type: 'linear',
               title: {
                 display: true,
-                text: 'TE (ms)',
+                text: 'Echo time TE (ms)',
                 font: { size: 14, weight: 'bold' }
               },
               min: 0,
@@ -740,13 +756,12 @@
       const config = datasetConfig[datasetKey];
       const images = getImageData(datasetKey);
       
-      // Update text content
-      document.getElementById('dataset-title').textContent = config.title;
-      document.getElementById('dataset-description').textContent = config.description;
-      document.getElementById('s0-subtitle').textContent = config.s0Subtitle;
-      document.getElementById('t-subtitle').textContent = config.tSubtitle;
-      document.getElementById('imageseries-title').textContent = config.imageseriesTitle;
-      document.getElementById('details-text').textContent = config.detailsText;
+            // Update text content
+      document.getElementById('dataset-description').innerHTML = config.description;
+      document.getElementById('s0-subtitle').innerHTML = config.s0Subtitle;
+      document.getElementById('t-subtitle').innerHTML = config.tSubtitle;
+      document.getElementById('imageseries-title').innerHTML = config.imageseriesTitle;
+      document.getElementById('details-text').innerHTML = config.detailsText;
       
       // Update arrow direction and text
       const arrowSymbol = document.getElementById('arrow-symbol');
@@ -845,7 +860,29 @@
         
         // Update content for selected dataset
         updateContent(datasetKey);
+        
+        // Re-render math after content update
+        if (window.renderMathInElement) {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ]
+          });
+        }
       });
+    });
+    
+    // Initial math rendering after page load
+    document.addEventListener('DOMContentLoaded', function() {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.body, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ]
+        });
+      }
     });
     </script>
   </body>
