@@ -88,6 +88,11 @@
         grid-row: 1;
       }
       
+      /* Hide row 1 (ground truth) when needed */
+      .row1-hidden {
+        display: none;
+      }
+      
       /* Responsive */
       @media (max-width: 768px) {
         .comparison-grid {
@@ -152,14 +157,14 @@
             </div>
             
             <!-- Row 1: Ground Truth -->
-            <div class="row-header" id="row1-header">Ground Truth</div>
-            <div class="grid-image">
+            <div class="row-header row1-element" id="row1-header">Ground Truth</div>
+            <div class="grid-image row1-element">
               <img id="row1-s0-img" src="" alt="Row 1 S0">
             </div>
-            <div class="grid-image">
+            <div class="grid-image row1-element">
               <img id="row1-t2-img" src="" alt="Row 1 T2">
             </div>
-            <div class="grid-details">
+            <div class="grid-details row1-element">
               <p id="row1-details"><!-- Dynamic details --></p>
             </div>
             
@@ -229,12 +234,7 @@
         slider: {
           description: `Use the slider to transition between different methods. This allows you to see differences 
             by smoothly blending between images, making subtle variations more apparent.`,
-          row1: {
-            header: 'Ground Truth',
-            s0Data: labels.label_S0,
-            t2Data: labels.label_T,
-            details: 'Ground truth parameter maps (slider will blend between methods).'
-          },
+          hideRow1: true,
           row2: {
             header: 'NLLS Fit',
             s0Data: method1_preds.pred_S0,
@@ -251,12 +251,7 @@
         toggle: {
           description: `Click on images to toggle between different methods. This provides an instant side-by-side 
             comparison by switching between methods at the same location.`,
-          row1: {
-            header: 'Ground Truth',
-            s0Data: labels.label_S0,
-            t2Data: labels.label_T,
-            details: 'Ground truth parameter maps (click to toggle views).'
-          },
+          hideRow1: true,
           row2: {
             header: 'NLLS Fit',
             s0Data: method1_preds.pred_S0,
@@ -284,11 +279,18 @@
         // Update description
         document.getElementById('tab-description').innerHTML = config.description;
         
-        // Update row 1
-        document.getElementById('row1-header').textContent = config.row1.header;
-        document.getElementById('row1-s0-img').src = arrayToImageSrc(config.row1.s0Data, s0Colormap, s0Min, s0Max);
-        document.getElementById('row1-t2-img').src = arrayToImageSrc(config.row1.t2Data, tColormap, tMin, tMax);
-        document.getElementById('row1-details').innerHTML = config.row1.details;
+        // Show or hide row 1 based on config
+        const row1Elements = document.querySelectorAll('.row1-element');
+        if (config.hideRow1) {
+          row1Elements.forEach(el => el.classList.add('row1-hidden'));
+        } else {
+          row1Elements.forEach(el => el.classList.remove('row1-hidden'));
+          // Update row 1 content
+          document.getElementById('row1-header').textContent = config.row1.header;
+          document.getElementById('row1-s0-img').src = arrayToImageSrc(config.row1.s0Data, s0Colormap, s0Min, s0Max);
+          document.getElementById('row1-t2-img').src = arrayToImageSrc(config.row1.t2Data, tColormap, tMin, tMax);
+          document.getElementById('row1-details').innerHTML = config.row1.details;
+        }
         
         // Update row 2
         document.getElementById('row2-header').textContent = config.row2.header;
