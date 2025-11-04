@@ -93,6 +93,104 @@
         display: none;
       }
       
+      /* Comparison slider styles */
+      .comparison-slider {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 6px;
+        cursor: default;
+        user-select: none;
+      }
+      
+      .slider-container {
+        position: relative;
+        width: 100%;
+        max-width: 300px;
+        height: 300px;
+        margin: 0 auto;
+        overflow: hidden;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+      }
+      
+      .comparison-base {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      
+      .comparison-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 50%;
+        height: 100%;
+        overflow: hidden;
+      }
+      
+      .comparison-overlay img {
+        width: 300px;
+        height: 300px;
+        object-fit: cover;
+        display: block;
+      }
+      
+      .comparison-handle {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        height: 100%;
+        width: 4px;
+        background: white;
+        cursor: ew-resize;
+        z-index: 10;
+      }
+      
+      .comparison-line {
+        width: 2px;
+        height: 100%;
+        background: #007acc;
+        margin: 0 auto;
+        pointer-events: none;
+      }
+      
+      .comparison-grip {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 20px;
+        height: 20px;
+        background: #007acc;
+        border: 2px solid white;
+        border-radius: 50%;
+        cursor: ew-resize;
+      }
+      
+      .comparison-labels {
+        position: absolute;
+        bottom: 10px;
+        left: 0;
+        right: 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 0 15px;
+        pointer-events: none;
+      }
+      
+      .comparison-labels span {
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
       /* Responsive */
       @media (max-width: 768px) {
         .comparison-grid {
@@ -170,10 +268,10 @@
             
             <!-- Row 2: NLLS Fit -->
             <div class="row-header" id="row2-header">NLLS Fit</div>
-            <div class="grid-image">
+            <div class="grid-image" id="row2-s0-container">
               <img id="row2-s0-img" src="" alt="Row 2 S0">
             </div>
-            <div class="grid-image">
+            <div class="grid-image" id="row2-t2-container">
               <img id="row2-t2-img" src="" alt="Row 2 T2">
             </div>
             <div class="grid-details">
@@ -182,10 +280,10 @@
             
             <!-- Row 3: CNN -->
             <div class="row-header" id="row3-header">CNN</div>
-            <div class="grid-image">
+            <div class="grid-image" id="row3-s0-container">
               <img id="row3-s0-img" src="" alt="Row 3 S0">
             </div>
-            <div class="grid-image">
+            <div class="grid-image" id="row3-t2-container">
               <img id="row3-t2-img" src="" alt="Row 3 T2">
             </div>
             <div class="grid-details">
@@ -292,17 +390,153 @@
           document.getElementById('row1-details').innerHTML = config.row1.details;
         }
         
+        // Determine if we need slider mode
+        const isSliderMode = (tabKey === 'slider');
+        
         // Update row 2
         document.getElementById('row2-header').textContent = config.row2.header;
-        document.getElementById('row2-s0-img').src = arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max);
-        document.getElementById('row2-t2-img').src = arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax);
+        if (isSliderMode) {
+          createComparisonSlider('row2-s0-container', 
+            arrayToImageSrc(labels.label_S0, s0Colormap, s0Min, s0Max),
+            arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max),
+            config.row2.header, 'Ground Truth');
+          createComparisonSlider('row2-t2-container', 
+            arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
+            arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax),
+            config.row2.header, 'Ground Truth');
+        } else {
+          restoreSimpleImage('row2-s0-container', arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max));
+          restoreSimpleImage('row2-t2-container', arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax));
+        }
         document.getElementById('row2-details').innerHTML = config.row2.details;
         
         // Update row 3
         document.getElementById('row3-header').textContent = config.row3.header;
-        document.getElementById('row3-s0-img').src = arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max);
-        document.getElementById('row3-t2-img').src = arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax);
+        if (isSliderMode) {
+          createComparisonSlider('row3-s0-container', 
+            arrayToImageSrc(labels.label_S0, s0Colormap, s0Min, s0Max),
+            arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max),
+            config.row3.header, 'Ground Truth');
+          createComparisonSlider('row3-t2-container', 
+            arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
+            arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax),
+            config.row3.header, 'Ground Truth');
+        } else {
+          restoreSimpleImage('row3-s0-container', arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max));
+          restoreSimpleImage('row3-t2-container', arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax));
+        }
         document.getElementById('row3-details').innerHTML = config.row3.details;
+      }
+      
+      // Function to create a comparison slider
+      function createComparisonSlider(containerId, baseImgSrc, overlayImgSrc, leftLabel, rightLabel) {
+        const container = document.getElementById(containerId);
+        
+        container.innerHTML = `
+          <div class="slider-container">
+            <div class="comparison-slider" id="slider-${containerId}">
+              <img class="comparison-base" src="${baseImgSrc}" alt="Base">
+              <div class="comparison-overlay">
+                <img src="${overlayImgSrc}" alt="Overlay">
+              </div>
+              <div class="comparison-handle">
+                <div class="comparison-line"></div>
+                <div class="comparison-grip"></div>
+              </div>
+              <div class="comparison-labels">
+                <span class="label-left">${leftLabel}</span>
+                <span class="label-right">${rightLabel}</span>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Initialize slider functionality
+        setTimeout(() => initComparisonSlider(`slider-${containerId}`), 50);
+      }
+      
+      // Function to restore simple image (non-slider mode)
+      function restoreSimpleImage(containerId, imgSrc) {
+        const container = document.getElementById(containerId);
+        const imgId = containerId.replace('-container', '-img');
+        
+        container.innerHTML = `<img id="${imgId}" src="${imgSrc}" alt="Parameter Map">`;
+      }
+      
+      // Global slider state for synchronization
+      let sliderState = {
+        isDragging: false,
+        currentSlider: null
+      };
+      
+      // Comparison slider functionality
+      function initComparisonSlider(sliderId) {
+        const slider = document.getElementById(sliderId);
+        if (!slider) return;
+        
+        const overlay = slider.querySelector('.comparison-overlay');
+        const handle = slider.querySelector('.comparison-handle');
+        const grip = slider.querySelector('.comparison-grip');
+        
+        function updateSlider(x) {
+          const rect = slider.getBoundingClientRect();
+          const percentage = Math.max(0, Math.min(100, (x - rect.left) / rect.width * 100));
+          
+          overlay.style.width = percentage + '%';
+          handle.style.left = percentage + '%';
+          
+          return percentage;
+        }
+        
+        function updateAllSliders(percentage) {
+          // Update all comparison sliders to the same percentage
+          document.querySelectorAll('.comparison-slider').forEach(s => {
+            const overlay = s.querySelector('.comparison-overlay');
+            const handle = s.querySelector('.comparison-handle');
+            if (overlay && handle) {
+              overlay.style.width = percentage + '%';
+              handle.style.left = percentage + '%';
+            }
+          });
+        }
+        
+        function startDrag(e) {
+          // Only respond to left mouse button (button 0)
+          if (e.button !== 0 && e.type !== 'touchstart') {
+            return;
+          }
+          sliderState.isDragging = true;
+          sliderState.currentSlider = slider;
+          e.preventDefault();
+          const percentage = updateSlider(e.clientX || e.touches[0].clientX);
+          updateAllSliders(percentage);
+        }
+        
+        function onDrag(e) {
+          if (!sliderState.isDragging || sliderState.currentSlider !== slider) return;
+          e.preventDefault();
+          const percentage = updateSlider(e.clientX || e.touches[0].clientX);
+          updateAllSliders(percentage);
+        }
+        
+        function stopDrag() {
+          if (sliderState.currentSlider === slider) {
+            sliderState.isDragging = false;
+            sliderState.currentSlider = null;
+          }
+        }
+        
+        // Mouse events - only on handle and grip
+        handle.addEventListener('mousedown', startDrag);
+        grip.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', onDrag);
+        document.addEventListener('mouseup', stopDrag);
+        
+        // Touch events for mobile - only on handle and grip
+        handle.addEventListener('touchstart', startDrag);
+        grip.addEventListener('touchstart', startDrag);
+        document.addEventListener('touchmove', onDrag);
+        document.addEventListener('touchend', stopDrag);
       }
       
       // Initialize with default tab on page load
