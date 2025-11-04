@@ -191,6 +191,36 @@
         font-weight: bold;
       }
       
+      /* Toggle mode styles */
+      .toggle-container {
+        position: relative;
+        display: inline-block;
+        width: 100%;
+      }
+      
+      .toggle-container img {
+        width: 100%;
+        max-width: 300px;
+        height: auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      
+      .toggle-label {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 4px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: bold;
+        pointer-events: none;
+        z-index: 5;
+      }
+      
       /* Responsive */
       @media (max-width: 768px) {
         .comparison-grid {
@@ -390,8 +420,9 @@
           document.getElementById('row1-details').innerHTML = config.row1.details;
         }
         
-        // Determine if we need slider mode
+        // Determine if we need slider or toggle mode
         const isSliderMode = (tabKey === 'slider');
+        const isToggleMode = (tabKey === 'toggle');
         
         // Update row 2
         document.getElementById('row2-header').textContent = config.row2.header;
@@ -404,6 +435,15 @@
             arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
             arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax),
             config.row2.header, 'Ground Truth');
+        } else if (isToggleMode) {
+          createToggleImage('row2-s0-container',
+            arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max),
+            arrayToImageSrc(labels.label_S0, s0Colormap, s0Min, s0Max),
+            config.row2.header);
+          createToggleImage('row2-t2-container',
+            arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax),
+            arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
+            config.row2.header);
         } else {
           restoreSimpleImage('row2-s0-container', arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max));
           restoreSimpleImage('row2-t2-container', arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax));
@@ -421,11 +461,25 @@
             arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
             arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax),
             config.row3.header, 'Ground Truth');
+        } else if (isToggleMode) {
+          createToggleImage('row3-s0-container',
+            arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max),
+            arrayToImageSrc(labels.label_S0, s0Colormap, s0Min, s0Max),
+            config.row3.header);
+          createToggleImage('row3-t2-container',
+            arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax),
+            arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
+            config.row3.header);
         } else {
           restoreSimpleImage('row3-s0-container', arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max));
           restoreSimpleImage('row3-t2-container', arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax));
         }
         document.getElementById('row3-details').innerHTML = config.row3.details;
+        
+        // Initialize toggle wheel events if in toggle mode
+        if (isToggleMode) {
+          setTimeout(() => initToggleWheelEvents(), 50);
+        }
       }
       
       // Function to create a comparison slider
@@ -461,6 +515,59 @@
         const imgId = containerId.replace('-container', '-img');
         
         container.innerHTML = `<img id="${imgId}" src="${imgSrc}" alt="Parameter Map">`;
+      }
+      
+      // Function to create a toggle image
+      function createToggleImage(containerId, predictionImgSrc, groundTruthImgSrc, methodName) {
+        const container = document.getElementById(containerId);
+        const imgId = `toggle-${containerId}`;
+        
+        container.innerHTML = `
+          <div class="toggle-container" data-toggle-state="prediction" data-container-id="${containerId}">
+            <img id="${imgId}" src="${predictionImgSrc}" 
+                 alt="Toggle Image"
+                 data-prediction-src="${predictionImgSrc}"
+                 data-groundtruth-src="${groundTruthImgSrc}"
+                 data-method-name="${methodName}">
+            <div class="toggle-label" id="label-${containerId}">${methodName}</div>
+          </div>
+        `;
+      }
+      
+      // Function to toggle all images
+      function toggleAllImages() {
+        const allContainers = document.querySelectorAll('.toggle-container');
+        
+        allContainers.forEach(cont => {
+          const currentState = cont.getAttribute('data-toggle-state');
+          const img = cont.querySelector('img');
+          const label = cont.querySelector('.toggle-label');
+          const methodName = img.getAttribute('data-method-name');
+          
+          if (currentState === 'prediction') {
+            // Switch to ground truth
+            cont.setAttribute('data-toggle-state', 'groundtruth');
+            img.src = img.getAttribute('data-groundtruth-src');
+            label.textContent = 'Ground Truth';
+          } else {
+            // Switch to prediction
+            cont.setAttribute('data-toggle-state', 'prediction');
+            img.src = img.getAttribute('data-prediction-src');
+            label.textContent = methodName;
+          }
+        });
+      }
+      
+      // Initialize toggle wheel events
+      function initToggleWheelEvents() {
+        const toggleContainers = document.querySelectorAll('.toggle-container');
+        
+        toggleContainers.forEach(container => {
+          container.addEventListener('wheel', function(e) {
+            e.preventDefault(); // Prevent page scrolling
+            toggleAllImages();
+          });
+        });
       }
       
       // Global slider state for synchronization
