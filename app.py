@@ -39,7 +39,7 @@ def load_images(dataset, case_id, type, method=None):
     """
 
     # File prefixes vary by dataset type
-    if dataset.lower().startswith("synth"):
+    if dataset.lower().startswith("synth") or dataset.lower().startswith("imagenet") or dataset.lower().startswith("urand"):
         is_synth = True
         prefix = "synth"    
         rotations = 0
@@ -125,6 +125,24 @@ def load_images(dataset, case_id, type, method=None):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.route('/compare_methods')
+def compare_methods():
+
+    # Hardwire the case_id for now
+    case_id = '000001'
+    dataset_name = 'synth_imagenet_1k_test'
+    labels = load_images('synth_imagenet_1k_test', case_id, "label")
+    method1_preds = load_images('IMAGENET_TEST_1k', case_id, "prediction", method="FIT_NLLS")
+    method2_preds = load_images('IMAGENET_TEST_1k', case_id, "prediction", method="CNN_IMAGENET")
+
+    # Check if any of the loads failed
+    if labels is None or method1_preds is None or method2_preds is None:
+        abort(404, description="One or more required datasets not found.")
+
+    return render_template('compare_methods.html', labels=labels, method1_preds=method1_preds, method2_preds=method2_preds)
+
 
 
 @app.route('/explore_datasets')
