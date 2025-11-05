@@ -95,3 +95,205 @@ const viridisColors = [
   [221,227,24],[223,227,24],[226,228,24],[229,228,25],[231,228,25],[234,229,26],[236,229,27],
   [239,229,28],[241,229,29],[244,230,30],[246,230,32],[248,230,33],[251,231,35],[253,231,37]
 ];
+
+// =============================================================================
+// Generic Zoom/Pan Functionality
+// =============================================================================
+
+// Global state for zoom/pan functionality
+const zoomPanGlobalState = {
+  syncStates: {},           // Stores shared state for synchronized zoom groups
+  activeContainer: null,    // Currently active container being dragged
+  handlersInitialized: false
+};
+
+/**
+ * Initialize zoom/pan for a container with a specific transform application function
+ * @param {HTMLElement} container - The container to enable zoom/pan on
+ * @param {string} syncKey - Optional key for synchronizing multiple containers
+ * @param {Function} applyTransformFn - Function to apply transform to this container
+ * @param {Function} applyGroupFn - Function to apply transform to all containers in sync group
+ */
+function initZoomPanForContainer(container, syncKey, applyTransformFn, applyGroupFn) {
+  if (!container) {
+    return;
+  }
+  
+  ensureZoomPanHandlers();
+  
+  // Initialize sync state if needed
+  if (syncKey && !zoomPanGlobalState.syncStates[syncKey]) {
+    zoomPanGlobalState.syncStates[syncKey] = { scale: 1, translateX: 0, translateY: 0 };
+  }
+  
+  const sharedState = syncKey ? zoomPanGlobalState.syncStates[syncKey] : { scale: 1, translateX: 0, translateY: 0 };
+  
+  container._zoomState = {
+    syncKey: syncKey,
+    sharedState: sharedState,
+    isDragging: false,
+    dragMode: null,
+    lastX: 0,
+    lastY: 0,
+    applyTransform: applyTransformFn,
+    applyGroup: applyGroupFn
+  };
+  
+  applyTransformFn(container);
+  container.style.cursor = 'crosshair';
+  
+  if (syncKey && applyGroupFn) {
+    applyGroupFn(syncKey);
+  }
+  
+  container.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+  });
+  
+  container.addEventListener('mousedown', function(e) {
+    // Skip if clicking on excluded elements (handles, grips, etc)
+    if (e.target.closest('.comparison-handle') || e.target.closest('.comparison-grip')) {
+      return;
+    }
+    if (e.button !== 2 && e.button !== 1) {
+      return;
+    }
+    e.preventDefault();
+    const state = container._zoomState;
+    state.isDragging = true;
+    state.dragMode = (e.button === 2) ? 'zoom' : 'pan';
+    state.lastX = e.clientX;
+    state.lastY = e.clientY;
+    container.style.cursor = state.dragMode === 'zoom' ? 'ns-resize' : 'move';
+    zoomPanGlobalState.activeContainer = container;
+  });
+  
+  container.addEventListener('mouseup', function() {
+    if (zoomPanGlobalState.activeContainer === container) {
+      handleZoomMouseUp();
+    }
+  });
+}
+
+/**
+ * Ensure global zoom/pan event handlers are registered
+ */
+function ensureZoomPanHandlers() {
+  if (zoomPanGlobalState.handlersInitialized) {
+    return;
+  }
+  zoomPanGlobalState.handlersInitialized = true;
+  document.addEventListener('mousemove', handleZoomMouseMove);
+  document.addEventListener('mouseup', handleZoomMouseUp);
+  document.addEventListener('dblclick', handleZoomDoubleClick);
+}
+
+/**
+ * Handle mouse move for zoom/pan
+ */
+function handleZoomMouseMove(e) {
+  if (!zoomPanGlobalState.activeContainer) {
+    return;
+  }
+  const state = zoomPanGlobalState.activeContainer._zoomState;
+  if (!state || !state.isDragging) {
+    return;
+  }
+  
+  const deltaX = e.clientX - state.lastX;
+  const deltaY = e.clientY - state.lastY;
+  const shared = state.sharedState;
+  
+  if (state.dragMode === 'zoom') {
+    const zoomSensitivity = 0.01;
+    const newScale = Math.max(0.5, Math.min(10, shared.scale - deltaY * zoomSensitivity));
+    shared.scale = newScale;
+  } else if (state.dragMode === 'pan') {
+    shared.translateX += deltaX;
+    shared.translateY += deltaY;
+  }
+  
+  state.lastX = e.clientX;
+  state.lastY = e.clientY;
+  
+  // Apply transform to synchronized group or single container
+  if (state.syncKey && state.applyGroup) {
+    state.applyGroup(state.syncKey);
+  } else if (state.applyTransform) {
+    state.applyTransform(zoomPanGlobalState.activeContainer);
+  }
+}
+
+/**
+ * Handle mouse up for zoom/pan
+ */
+function handleZoomMouseUp() {
+  if (!zoomPanGlobalState.activeContainer) {
+    return;
+  }
+  const state = zoomPanGlobalState.activeContainer._zoomState;
+  if (state) {
+    state.isDragging = false;
+    state.dragMode = null;
+  }
+  zoomPanGlobalState.activeContainer.style.cursor = 'crosshair';
+  zoomPanGlobalState.activeContainer = null;
+}
+
+/**
+ * Handle double-click to reset zoom/pan
+ */
+function handleZoomDoubleClick(e) {
+  const container = e.target.closest('[data-zoom-enabled]');
+  if (!container || !container._zoomState) {
+    return;
+  }
+  resetZoomForContainer(container);
+}
+
+/**
+ * Reset zoom/pan for a container
+ * @param {HTMLElement} container - The container to reset
+ */
+function resetZoomForContainer(container) {
+  if (!container || !container._zoomState) {
+    return;
+  }
+  const state = container._zoomState;
+  const shared = state.sharedState;
+  shared.scale = 1;
+  shared.translateX = 0;
+  shared.translateY = 0;
+  
+  // Apply reset to synchronized group or single container
+  if (state.syncKey && state.applyGroup) {
+    state.applyGroup(state.syncKey);
+  } else if (state.applyTransform) {
+    state.applyTransform(container);
+  }
+}
+
+/**
+ * Initialize zoom sync state for a group
+ * @param {string} syncKey - The key identifying the sync group
+ */
+function initZoomSyncState(syncKey) {
+  if (syncKey && !zoomPanGlobalState.syncStates[syncKey]) {
+    zoomPanGlobalState.syncStates[syncKey] = { scale: 1, translateX: 0, translateY: 0 };
+  }
+}
+
+/**
+ * Reset active zoom interaction (useful when switching views/tabs)
+ */
+function resetActiveZoomInteraction() {
+  if (zoomPanGlobalState.activeContainer) {
+    const activeState = zoomPanGlobalState.activeContainer._zoomState;
+    if (activeState) {
+      activeState.isDragging = false;
+      activeState.dragMode = null;
+    }
+    zoomPanGlobalState.activeContainer.style.cursor = 'crosshair';
+    zoomPanGlobalState.activeContainer = null;
+  }
+}

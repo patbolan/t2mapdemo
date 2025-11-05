@@ -134,3 +134,31 @@ body {
     border-bottom-color: transparent;
   }
 }
+
+/* =============================================================================
+   Generic Zoom/Pan Container Styles
+   ============================================================================= */
+
+/* Base zoom container - apply to any element that should support zoom/pan */
+.zoom-enabled-container {
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+  background: #000;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Image inside a zoom container - positioned for transform */
+.zoom-enabled-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1);
+  transform-origin: center center;
+  user-select: none;
+  pointer-events: none;
+  border: none;
+  box-shadow: none;
+}

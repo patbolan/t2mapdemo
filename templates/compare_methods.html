@@ -67,9 +67,36 @@
         width: 100%;
         max-width: 300px;
         height: auto;
+      }
+
+      /* Zoom/pan container for static tab */
+      .zoom-container {
+        position: relative;
+        width: 100%;
+        max-width: 300px;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
         border: 1px solid #ddd;
         border-radius: 6px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        cursor: crosshair;
+        background: #000;
+      }
+
+      .zoom-image {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(1);
+        transform-origin: center center;
+        user-select: none;
+        pointer-events: none;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border: none;
+        box-shadow: none;
       }
       
       /* Text column using details-container styling */
@@ -113,6 +140,8 @@
         overflow: hidden;
         border: 1px solid #ddd;
         border-radius: 6px;
+        cursor: crosshair;
+        background: #000;
       }
       
       .comparison-base {
@@ -192,19 +221,35 @@
       }
       
       /* Toggle mode styles */
-      .toggle-container {
+      .toggle-wrapper {
         position: relative;
-        display: inline-block;
         width: 100%;
+        max-width: 300px;
+        aspect-ratio: 1 / 1;
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        cursor: crosshair;
+        background: #000;
+      }
+      
+      .toggle-container {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 100%;
+        transform-origin: center center;
       }
       
       .toggle-container img {
         width: 100%;
-        max-width: 300px;
-        height: auto;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: 100%;
+        object-fit: contain;
+        pointer-events: none;
       }
       
       .toggle-label {
@@ -286,10 +331,10 @@
             
             <!-- Row 1: Ground Truth -->
             <div class="row-header row1-element" id="row1-header">Ground Truth</div>
-            <div class="grid-image row1-element">
+            <div class="grid-image row1-element" id="row1-s0-container">
               <img id="row1-s0-img" src="" alt="Row 1 S0">
             </div>
-            <div class="grid-image row1-element">
+            <div class="grid-image row1-element" id="row1-t2-container">
               <img id="row1-t2-img" src="" alt="Row 1 T2">
             </div>
             <div class="grid-details row1-element">
@@ -398,8 +443,18 @@
       // Function to update content based on selected tab
       function updateContent(tabKey) {
         const config = tabConfig[tabKey];
-        
-        let s0Colormap = 'gray';
+
+        // Reset any active zoom interaction when switching modes
+        resetActiveZoomInteraction();
+
+        // Initialize zoom sync state for the selected tab
+        if (tabKey === 'static') {
+          initZoomSyncState('static');
+        } else if (tabKey === 'slider') {
+          initZoomSyncState('slider');
+        } else if (tabKey === 'toggle') {
+          initZoomSyncState('toggle');
+        }        let s0Colormap = 'gray';
         let tColormap = 'viridis';
         let s0Min = 0, s0Max = 1;
         let tMin = 0, tMax = 4; 
@@ -415,8 +470,12 @@
           row1Elements.forEach(el => el.classList.remove('row1-hidden'));
           // Update row 1 content
           document.getElementById('row1-header').textContent = config.row1.header;
-          document.getElementById('row1-s0-img').src = arrayToImageSrc(config.row1.s0Data, s0Colormap, s0Min, s0Max);
-          document.getElementById('row1-t2-img').src = arrayToImageSrc(config.row1.t2Data, tColormap, tMin, tMax);
+          renderStaticImage('row1-s0-container',
+            arrayToImageSrc(config.row1.s0Data, s0Colormap, s0Min, s0Max),
+            `${config.row1.header} S0 Parameter Map`);
+          renderStaticImage('row1-t2-container',
+            arrayToImageSrc(config.row1.t2Data, tColormap, tMin, tMax),
+            `${config.row1.header} T2 Parameter Map`);
           document.getElementById('row1-details').innerHTML = config.row1.details;
         }
         
@@ -445,8 +504,12 @@
             arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
             config.row2.header);
         } else {
-          restoreSimpleImage('row2-s0-container', arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max));
-          restoreSimpleImage('row2-t2-container', arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax));
+          renderStaticImage('row2-s0-container',
+            arrayToImageSrc(config.row2.s0Data, s0Colormap, s0Min, s0Max),
+            `${config.row2.header} S0 Parameter Map`);
+          renderStaticImage('row2-t2-container',
+            arrayToImageSrc(config.row2.t2Data, tColormap, tMin, tMax),
+            `${config.row2.header} T2 Parameter Map`);
         }
         document.getElementById('row2-details').innerHTML = config.row2.details;
         
@@ -471,8 +534,12 @@
             arrayToImageSrc(labels.label_T, tColormap, tMin, tMax),
             config.row3.header);
         } else {
-          restoreSimpleImage('row3-s0-container', arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max));
-          restoreSimpleImage('row3-t2-container', arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax));
+          renderStaticImage('row3-s0-container',
+            arrayToImageSrc(config.row3.s0Data, s0Colormap, s0Min, s0Max),
+            `${config.row3.header} S0 Parameter Map`);
+          renderStaticImage('row3-t2-container',
+            arrayToImageSrc(config.row3.t2Data, tColormap, tMin, tMax),
+            `${config.row3.header} T2 Parameter Map`);
         }
         document.getElementById('row3-details').innerHTML = config.row3.details;
         
@@ -487,7 +554,7 @@
         const container = document.getElementById(containerId);
         
         container.innerHTML = `
-          <div class="slider-container">
+          <div class="slider-container slider-zoom" data-zoom-enabled data-zoom-sync="slider" data-slider-id="${containerId}">
             <div class="comparison-slider" id="slider-${containerId}">
               <img class="comparison-base" src="${baseImgSrc}" alt="Base">
               <div class="comparison-overlay">
@@ -506,15 +573,55 @@
         `;
         
         // Initialize slider functionality
-        setTimeout(() => initComparisonSlider(`slider-${containerId}`), 50);
+        setTimeout(() => {
+          initComparisonSlider(`slider-${containerId}`);
+          const sliderContainer = container.querySelector('.slider-container');
+          initSliderZoomPan(sliderContainer);
+        }, 50);
       }
       
-      // Function to restore simple image (non-slider mode)
-      function restoreSimpleImage(containerId, imgSrc) {
+      // Function to render a static image with zoom/pan support
+      function renderStaticImage(containerId, imgSrc, altText) {
         const container = document.getElementById(containerId);
+        if (!container) {
+          return;
+        }
         const imgId = containerId.replace('-container', '-img');
+        const altValue = altText || 'Parameter Map';
         
-        container.innerHTML = `<img id="${imgId}" src="${imgSrc}" alt="Parameter Map">`;
+        container.innerHTML = `
+          <div class="zoom-container static-zoom" data-zoom-enabled data-zoom-sync="static">
+            <img id="${imgId}" class="zoom-image" src="${imgSrc}" alt="${altValue}">
+          </div>
+        `;
+        const zoomContainer = container.querySelector('.zoom-container');
+        initZoomPanForContainer(
+          zoomContainer,
+          'static',
+          applyStaticZoomTransform,
+          applyStaticZoomToGroup
+        );
+      }
+
+      // Apply zoom transform to static image containers
+      function applyStaticZoomTransform(container) {
+        if (!container) return;
+        const img = container.querySelector('.zoom-image');
+        const state = container._zoomState;
+        if (!img || !state) return;
+        const shared = state.sharedState || { scale: 1, translateX: 0, translateY: 0 };
+        img.style.transform = `translate(-50%, -50%) translate(${shared.translateX}px, ${shared.translateY}px) scale(${shared.scale})`;
+      }
+
+      // Apply zoom to all static containers in sync group
+      function applyStaticZoomToGroup(syncKey) {
+        if (!syncKey) return;
+        const containers = document.querySelectorAll(`.zoom-container[data-zoom-sync="${syncKey}"]`);
+        containers.forEach(container => {
+          if (container._zoomState) {
+            applyStaticZoomTransform(container);
+          }
+        });
       }
       
       // Function to create a toggle image
@@ -523,15 +630,54 @@
         const imgId = `toggle-${containerId}`;
         
         container.innerHTML = `
-          <div class="toggle-container" data-toggle-state="prediction" data-container-id="${containerId}">
-            <img id="${imgId}" src="${predictionImgSrc}" 
-                 alt="Toggle Image"
-                 data-prediction-src="${predictionImgSrc}"
-                 data-groundtruth-src="${groundTruthImgSrc}"
-                 data-method-name="${methodName}">
-            <div class="toggle-label" id="label-${containerId}">${methodName}</div>
+          <div class="toggle-wrapper toggle-zoom" data-zoom-enabled data-zoom-sync="toggle" data-container-id="${containerId}">
+            <div class="toggle-container" data-toggle-state="prediction">
+              <img id="${imgId}" class="toggle-image" src="${predictionImgSrc}" 
+                   alt="Toggle Image"
+                   data-prediction-src="${predictionImgSrc}"
+                   data-groundtruth-src="${groundTruthImgSrc}"
+                   data-method-name="${methodName}">
+              <div class="toggle-label" id="label-${containerId}">${methodName}</div>
+            </div>
           </div>
         `;
+        
+        const toggleWrapper = container.querySelector('.toggle-wrapper');
+        initToggleZoomPan(toggleWrapper);
+      }
+      
+      // Initialize zoom/pan for toggle containers
+      function initToggleZoomPan(toggleWrapper) {
+        if (!toggleWrapper) {
+          return;
+        }
+        initZoomPanForContainer(
+          toggleWrapper,
+          'toggle',
+          applyToggleZoomTransform,
+          applyToggleZoomToGroup
+        );
+      }
+      
+      // Apply zoom transform to toggle containers
+      function applyToggleZoomTransform(toggleWrapper) {
+        if (!toggleWrapper) return;
+        const toggleContainer = toggleWrapper.querySelector('.toggle-container');
+        const state = toggleWrapper._zoomState;
+        if (!toggleContainer || !state) return;
+        const shared = state.sharedState || { scale: 1, translateX: 0, translateY: 0 };
+        toggleContainer.style.transform = `translate(-50%, -50%) translate(${shared.translateX}px, ${shared.translateY}px) scale(${shared.scale})`;
+      }
+      
+      // Apply zoom to all toggle containers in sync group
+      function applyToggleZoomToGroup(syncKey) {
+        if (!syncKey) return;
+        const containers = document.querySelectorAll(`.toggle-wrapper[data-zoom-sync="${syncKey}"]`);
+        containers.forEach(container => {
+          if (container._zoomState) {
+            applyToggleZoomTransform(container);
+          }
+        });
       }
       
       // Function to toggle all images
@@ -575,6 +721,40 @@
         isDragging: false,
         currentSlider: null
       };
+      
+      // Initialize zoom/pan for slider containers
+      function initSliderZoomPan(sliderContainer) {
+        if (!sliderContainer) {
+          return;
+        }
+        initZoomPanForContainer(
+          sliderContainer,
+          'slider',
+          applySliderZoomTransform,
+          applySliderZoomToGroup
+        );
+      }
+      
+      // Apply zoom transform to slider containers
+      function applySliderZoomTransform(sliderContainer) {
+        if (!sliderContainer) return;
+        const slider = sliderContainer.querySelector('.comparison-slider');
+        const state = sliderContainer._zoomState;
+        if (!slider || !state) return;
+        const shared = state.sharedState || { scale: 1, translateX: 0, translateY: 0 };
+        slider.style.transform = `translate(${shared.translateX}px, ${shared.translateY}px) scale(${shared.scale})`;
+      }
+      
+      // Apply zoom to all slider containers in sync group
+      function applySliderZoomToGroup(syncKey) {
+        if (!syncKey) return;
+        const containers = document.querySelectorAll(`.slider-container[data-zoom-sync="${syncKey}"]`);
+        containers.forEach(container => {
+          if (container._zoomState) {
+            applySliderZoomTransform(container);
+          }
+        });
+      }
       
       // Comparison slider functionality
       function initComparisonSlider(sliderId) {

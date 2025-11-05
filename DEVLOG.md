@@ -1,9 +1,8 @@
 ** CURRENT WORKING **
-Had to redo how data is transfered back to front. Now it's json arrays. 
-Implemented but then backed off of the zoom/pan. Got complicated, but in code and UI
-Fine tune this page, add text. Finalize!!!
-- will need to  extract some javascript utils into their own file
-
+On to compare_methods.
+Have basic functionalty working. 
+Attempt to add zoom/pan. Leave a flag to disable.
+Add text and fine formatting
 
 
 ** Running the server**  
