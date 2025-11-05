@@ -107,8 +107,8 @@
         text-align: center;
       }
       .image-container img {
-        width: 100%;
-        height: auto;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
         border: 1px solid #ddd;
         border-radius: 6px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -123,13 +123,14 @@
       .image-wrapper {
         position: relative;
         display: block;
-        width: 100%;
+        width: var(--parameter-map-size);
         cursor: none;
+        margin: 0 auto;
       }
       .image-wrapper img {
         display: block;
-        width: 100%;
-        height: auto;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
         border-radius: 6px;
       }
       .crosshair-overlay {

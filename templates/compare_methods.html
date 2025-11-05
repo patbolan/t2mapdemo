@@ -65,16 +65,15 @@
       
       .grid-image img {
         width: 100%;
-        max-width: 300px;
+        max-width: var(--parameter-map-size);
         height: auto;
       }
 
       /* Zoom/pan container for static tab */
       .zoom-container {
         position: relative;
-        width: 100%;
-        max-width: 300px;
-        aspect-ratio: 1 / 1;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
         margin: 0 auto;
         border: 1px solid #ddd;
         border-radius: 6px;
@@ -115,6 +114,27 @@
         grid-row: 1;
       }
       
+      /* Zoom/Pan Instructions */
+      .zoom-instructions {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 0.9em;
+        color: #495057;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1.5rem;
+      }
+      
+      .zoom-instructions .control-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      
       /* Hide row 1 (ground truth) when needed */
       .row1-hidden {
         display: none;
@@ -133,9 +153,8 @@
       
       .slider-container {
         position: relative;
-        width: 100%;
-        max-width: 300px;
-        height: 300px;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
         margin: 0 auto;
         overflow: hidden;
         border: 1px solid #ddd;
@@ -161,8 +180,8 @@
       }
       
       .comparison-overlay img {
-        width: 300px;
-        height: 300px;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
         object-fit: cover;
         display: block;
       }
@@ -223,9 +242,8 @@
       /* Toggle mode styles */
       .toggle-wrapper {
         position: relative;
-        width: 100%;
-        max-width: 300px;
-        aspect-ratio: 1 / 1;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
         margin: 0 auto;
         border: 1px solid #ddd;
         border-radius: 6px;
@@ -365,6 +383,15 @@
               <p id="row3-details"><!-- Dynamic details --></p>
             </div>
           </div>
+          
+          <!-- Zoom/Pan Instructions -->
+          <div class="zoom-instructions">
+            <strong>Image Controls:</strong>
+            <span class="control-item"><strong>Right-click + drag ↕</strong> Zoom in/out</span>
+            <span class="control-item"><strong>Middle-click + drag</strong> Pan around</span>
+            <span class="control-item"><strong>Double-click</strong> Reset zoom/pan</span>
+            <span class="control-item" id="toggle-control" style="display: none;"><strong>Mouse wheel</strong>Toggle</span>
+          </div>
         </div>
       </div>
     </div>
@@ -383,25 +410,29 @@
       // Configuration for each tab
       const tabConfig = {
         static: {
-          description: `These side-by-side images show static comparisons of the parameter maps from ground truth, 
-            NLLS fitting, and CNN predictions. All images are displayed simultaneously for direct visual comparison.`,
+          description: `These side-by-side images provide a static comparison of the parameter maps from Ground Truth, 
+            NLLS fitting, and CNN predictions. You can zoom in (right mouse button) and pan (middle mouse) to focus on image details. `,
           row1: {
             header: 'Ground Truth',
             s0Data: labels.label_S0,
             t2Data: labels.label_T,
-            details: 'Ground truth parameter maps generated from the synthetic data simulation.'
+            details: 'These are the Ground truth parameter maps used to generate the image data.'
           },
           row2: {
             header: 'NLLS Fit',
             s0Data: method1_preds.pred_S0,
             t2Data: method1_preds.pred_T,
-            details: 'Parameter maps estimated using Non-Linear Least Squares (NLLS) fitting algorithm.'
+            details: `<p>This the standard technique for estimating parameter maps from an image series, pixel-by-pixel curve fitting
+                using a Non-Linear Least Squares (NLLS) fitting algorithm.</p>
+                <p>Note the noise througout the parameter maps, especially in ares where the signal-to-noise (SNR) is low due to 
+                low $S_0$ values.</p>`,
           },
           row3: {
             header: 'CNN',
             s0Data: method2_preds.pred_S0,
             t2Data: method2_preds.pred_T,
-            details: 'Parameter maps estimated using Convolutional Neural Network (CNN) trained on ImageNet synthetic data.'
+            details: `<p>These parameter maps were estimated using a Convolutional Neural Network (CNN) trained on ImageNet synthetic data.</p> 
+                <p>These maps have much lower noise levels compared to NLLS fitting, but introduce some smoothing artifacts.</p>`
           }
         },
         slider: {
@@ -454,7 +485,15 @@
           initZoomSyncState('slider');
         } else if (tabKey === 'toggle') {
           initZoomSyncState('toggle');
-        }        let s0Colormap = 'gray';
+        }
+        
+        // Show/hide toggle control instruction
+        const toggleControl = document.getElementById('toggle-control');
+        if (toggleControl) {
+          toggleControl.style.display = (tabKey === 'toggle') ? 'flex' : 'none';
+        }
+        
+        let s0Colormap = 'gray';
         let tColormap = 'viridis';
         let s0Min = 0, s0Max = 1;
         let tMin = 0, tMax = 4; 
@@ -546,6 +585,17 @@
         // Initialize toggle wheel events if in toggle mode
         if (isToggleMode) {
           setTimeout(() => initToggleWheelEvents(), 50);
+        }
+        
+        // Render math with KaTeX after content update
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
         }
       }
       
