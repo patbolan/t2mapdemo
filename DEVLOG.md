@@ -1,8 +1,7 @@
 ** CURRENT WORKING **
-On to compare_methods.
-Have basic functionalty working. 
-Attempt to add zoom/pan. Leave a flag to disable.
-Add text and fine formatting
+Completed compare methods. I was planning on swapping in more examples, but for now, this is just a visualization
+So put that off
+Complete the invivo page.
 
 
 ** Running the server**  

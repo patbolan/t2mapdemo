@@ -163,3 +163,15 @@ body {
   border: none;
   box-shadow: none;
 }
+
+/* Parameter map image rendering - use nearest-neighbor for crisp pixels */
+.zoom-enabled-image,
+.grid-image img,
+.image-container img,
+.comparison-base img,
+.comparison-overlay img,
+.toggle-container img {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
