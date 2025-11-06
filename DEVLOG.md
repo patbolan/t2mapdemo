@@ -5,6 +5,8 @@ Complete the invivo page.
 Got the fundamentals working. Now format and copy
 
 
+Need to get the right examples. Looks lkike fig 6 was 400, fig 5 (malignant) was 277
+
 
 
 ** Running the server**  

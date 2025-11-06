@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 import os
 import shutil
+import nibabel as nib
+import matplotlib.pyplot as plt 
+import numpy as np
 
 def main():
-
-    # return right away: I want to disable this script for now
-    print("File copy script is disabled.")
-    return
 
 
     # Copy files from source to target areas
@@ -20,33 +19,50 @@ def main():
     methods = ["FIT_NLLS", "CNN_IMAGENET"]  
 
     case_id = '000118'
-    for dataset in dataset_folders:
-        for method in methods:
-            source_file = os.path.join(source_root, dataset, method, f"preds_{case_id}.nii.gz")
-            destination_dir = os.path.join(target_root, dataset, method)
+    case_id = '000277'
+    #case_id = '000400'
 
-            # First, just check that the source file exits
-            if not os.path.exists(source_file):
-                print(f"Source file does not exist: {source_file}")
-                # Abort further processing for this file    
-                raise FileNotFoundError(f"Source file does not exist: {source_file}")   
-            
-            # Check if the destination directory exists
-            if not os.path.exists(destination_dir):
-                os.makedirs(destination_dir, exist_ok=True)
-                print(f"Created destination directory: {destination_dir}")
-            else:
-                print(f"Destination directory already exists: {destination_dir}")
+    # Preview a single file
+    if False:
+        test_file = os.path.join(source_root, "INVIVO2D_SET3", "FIT_NLLS", f"preds_{case_id}.nii.gz")
+        if os.path.exists(test_file):
+            # load this nifti file and plot an image
 
-            # Check if the file exists at the destination
-            dest_file = os.path.join(destination_dir, f"preds_{case_id}.nii.gz")
-            if os.path.exists(dest_file):
-                print(f"Destination file already exists, skipping copy: {dest_file}")
-                continue  # Skip copying if the file already exists
+            nifti_img = nib.load(test_file)
+            img_data = nifti_img.get_fdata()
+            img = np.rot90(img_data[:,:,0,1])
+            plt.imshow(img, cmap='viridis', vmax=2, interpolation='nearest')
+            plt.show()
 
-            # Copy the file using shutil
-            shutil.copy2(source_file, dest_file)
-            print(f"Copied {source_file} to {dest_file}")
+    # Copy everything
+    if False:
+        for dataset in dataset_folders:
+            for method in methods:
+                source_file = os.path.join(source_root, dataset, method, f"preds_{case_id}.nii.gz")
+                destination_dir = os.path.join(target_root, dataset, method)
+
+                # First, just check that the source file exits
+                if not os.path.exists(source_file):
+                    print(f"Source file does not exist: {source_file}")
+                    # Abort further processing for this file    
+                    raise FileNotFoundError(f"Source file does not exist: {source_file}")   
+                
+                # Check if the destination directory exists
+                if not os.path.exists(destination_dir):
+                    os.makedirs(destination_dir, exist_ok=True)
+                    print(f"Created destination directory: {destination_dir}")
+                else:
+                    print(f"Destination directory already exists: {destination_dir}")
+
+                # Check if the file exists at the destination
+                dest_file = os.path.join(destination_dir, f"preds_{case_id}.nii.gz")
+                if os.path.exists(dest_file):
+                    print(f"Destination file already exists, skipping copy: {dest_file}")
+                    continue  # Skip copying if the file already exists
+
+                # Copy the file using shutil
+                shutil.copy2(source_file, dest_file)
+                print(f"Copied {source_file} to {dest_file}")
 
 if __name__ == "__main__":
     main()

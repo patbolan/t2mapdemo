@@ -324,7 +324,7 @@
       imagenet: {
         title: 'ImageNet Synthetic Dataset',
         description: `This is an example of a synthetic dataset. A novel aspect of this paper is the generation of a large amount 
-          of synthetic imaging data for supervised training.`,
+          of synthetic imaging data for supervised training, and for objective testing.`,
         s0Subtitle: 'Ground Truth',
         tSubtitle: 'Ground Truth',
         imageseriesTitle: 'Synthetic Multi-Echo Image Series',
@@ -335,7 +335,7 @@
         arrowText: 'Synthesize w/noise',
         detailsText: `To synthesize data, random images were selected from a public image dataset 
           (<a href="https://www.image-net.org/">ImageNet</a>) and used to represent 
-          ground truth parameter maps S0 and T2. From these, a multi-echo image series was synthesized using the same 
+          <strong>ground truth</strong> parameter maps $S_0$ and $T_2$. From these, a multi-echo image series was synthesized using the same 
           equation ($S(TE) = S_0 \\exp(-TE/T_2)$) and by adding noise to the images following the physics of MR image 
           generation (i.e., Rician noise).
           <p>The networks were trained using 10,000 synthetic image sets with random images and variable noise levels. In this way 
@@ -355,9 +355,9 @@
         arrowDirection: 'down',
         arrowText: 'Synthesize w/noise',
         detailsText: `This dataset is generated in exactly the same way as the ImageNet synthetic dataset, by modeling 
-        the exponential decay and adding physics-guided noise. This dataset was used to explore how CNNs perform 
+        the exponential decay and adding physics-appropriate noise. This dataset was used to explore how CNNs perform 
         denoising. In the ImageNet data, pixel values are somewhat correlated with neighboring pixels, and this 
-        information can help estimating parameters in noisy data. Models trained using these purely random images 
+        information can help when estimating parameters in noisy data. Models trained using these purely random images 
         were expected to provide poorer denoising performance because they cannot exploit spatial correlation 
         between neighboring pixels.`
       }

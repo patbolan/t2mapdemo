@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>View In Vivo Data - T2 Map Demo</title>
+    <title>Evaluate Noise Sensitivity - T2 Map Demo</title>
     
     <link rel="stylesheet" href="/static/css/shared.css">
     
@@ -138,11 +138,12 @@
       
       /* Noise level slider controls */
       .noise-controls {
-        margin: 1.5rem 0;
-        padding: 1rem;
+        margin: 1rem 0 0.5rem 0;
+        padding: 0.25rem 1rem;
         background: #fff;
         border: 1px solid #dee2e6;
         border-radius: 6px;
+        height: 34px;
       }
       
       .slider-container {
@@ -150,6 +151,7 @@
         align-items: center;
         justify-content: center;
         gap: 1rem;
+        height: 100%;
       }
       
       .slider-container label {
@@ -239,19 +241,25 @@
     
     <a href="/" class="back-link">← Back to Home</a>
     
-    <h1>View In Vivo Data</h1>
+    <h1>Evaluate Noise Sensitivity <i>In Vivo</i></h1>
     
     <div class="info-box">
-      <p>These are real breast MRI scans showing $T_2$ parameter maps estimated from in vivo data. 
-        Case A represents a benign lesion, while Case B shows a malignant tumor. Both cases use the same 
-        estimation methods: Non-Linear Least Squares (NLLS) fitting and Convolutional Neural Network (CNN) prediction.</p>
+        <p>When measuring in people, we do not know the ground truth $T_2$ values. In high SNR images, 
+            it is known that NLLS fitting gives accurate results, but in low SNR regions the $T_2$ 
+            values are overestimated. In this study we artificially added noise to the <i>in vivo</i>i> images 
+            to evaluate how the different methods perform on low-SNR data. The interactive figure below is adapted from 
+            <a href=https://link.springer.com/article/10.1007/s10334-024-01186-3/figures/5>Figure 6</a> 
+            in the paper, with a second subject (case B) taken from 
+            <a href=”https://link.springer.com/article/10.1007/s10334-024-01186-3/figures/6”>Figure 5</a>.</p> 
+            <p>This interactive figure is intended to improve understanding of these methods fail 
+                differently, which impacts how the maps are interpreted.</p>
     </div>
     
     <div class="tab-card">
       <div class="tab-description">
-        <p>Compare the parameter maps from two different estimation methods applied to real patient data. 
-          The images show $T_2$ relaxation time maps for two clinical cases with different diagnoses. 
-          You can zoom in (right mouse button) and pan (middle mouse) to examine details in the parameter maps.</p>
+        <p>Drag the slider to vary the level of noise added to the images and observe how the two methods 
+            respond differently to increasing noise. You can also zoom, pan, and vary the noise level with 
+            the mouse wheel.</p>
       </div>
       
       <!-- Noise Level Controls -->
@@ -285,38 +293,47 @@
         <!-- Row 1: NLLS Fit -->
         <div class="row-header">NLLS Fit</div>
         <div class="grid-image" id="nlls-casea-container">
-          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
-            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+A+NLLS" alt="Case A NLLS">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="case-a">
+            <img class="zoom-image" src="" alt="Case A NLLS">
           </div>
         </div>
         <div class="grid-image" id="nlls-caseb-container">
-          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
-            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+B+NLLS" alt="Case B NLLS">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="case-b">
+            <img class="zoom-image" src="" alt="Case B NLLS">
           </div>
         </div>
         <div class="grid-details">
-          <p>NLLS fitting provides the standard approach for parameter estimation, performing pixel-by-pixel 
-            curve fitting using a Non-Linear Least Squares algorithm. Note the noise characteristics 
-            in regions with varying signal-to-noise ratios.</p>
+            <p>This is the standard approach for parameter estimation. </p>
+            <p>Without added noise, the results in the prostate look good, but you can see some noise 
+                amplification in low SNR regions like the muscles and the rectum. As the noise level 
+                increases the maps amplify the noise further and are eventually uninterpretable.  </p>
         </div>
         
         <!-- Row 2: CNN -->
         <div class="row-header">CNN</div>
         <div class="grid-image" id="cnn-casea-container">
-          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
-            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+A+CNN" alt="Case A CNN">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="case-a">
+            <img class="zoom-image" src="" alt="Case A CNN">
           </div>
         </div>
         <div class="grid-image" id="cnn-caseb-container">
-          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
-            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+B+CNN" alt="Case B CNN">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="case-b">
+            <img class="zoom-image" src="" alt="Case B CNN">
           </div>
         </div>
         <div class="grid-details">
-          <p>The CNN approach was trained on synthetic data and applied to these real patient scans. 
-            The CNN generally produces smoother parameter maps with reduced noise compared to NLLS, 
-            though some fine details may be smoothed out in the process.</p>
+            <p>Without added noise, the CNN gives similar results as NLLS fitting in the prostate, 
+                which has high SNR. At lower levels of added noise, the CNN continues to provide 
+                good maps in high-SNR regions at the cost of some blurring. At higher noise levels 
+                the CNN gives maps with unusable levels of blurring, warping, and hallucinations. </p>
         </div>
+      </div>
+      
+      <!-- Summary Comment -->
+      <div class="tab-description">
+            <p>Consistent with the quantitative analyses in the paper, the CNN and NLLS methods 
+                give similar results at high SNR, and the CNN outperforms the NLLS fit in lower 
+                SNR levels. At very low SNR levels ($sigma$ > ~0.06) both methods fail. </p>
       </div>
       
       <!-- Zoom/Pan Instructions -->
@@ -325,6 +342,7 @@
         <span class="control-item"><strong>Right-click + drag ↕</strong> Zoom in/out</span>
         <span class="control-item"><strong>Middle-click + drag</strong> Pan around</span>
         <span class="control-item"><strong>Double-click</strong> Reset zoom/pan</span>
+        <span class="control-item"><strong>Mouse wheel</strong> Change noise level</span>
       </div>
     </div>
     
@@ -350,11 +368,23 @@
         const noiseLevel = parseInt(document.getElementById('noise-level').value);
         const noiseLevelDisplay = document.getElementById('noise-level-display');
         
-        // Update noise level display text
+        // Update noise level display text with sigma values
         if (noiseLevel === 0) {
-          noiseLevelDisplay.textContent = '0 (No added noise)';
+          noiseLevelDisplay.innerHTML = '0 (No added noise)';
         } else {
-          noiseLevelDisplay.textContent = noiseLevel.toString();
+          const sigma = (noiseLevel * 0.01).toFixed(2);
+          noiseLevelDisplay.innerHTML = `$\\sigma$ = ${sigma}`;
+        }
+        
+        // Re-render KaTeX for the updated display
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(noiseLevelDisplay, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
         }
         
         // Get data for current noise level
@@ -399,15 +429,17 @@
         // Render initial images (noise level 0)
         updateNoiseLevel();
         
-        // Initialize zoom sync state
-        initZoomSyncState('invivo');
+        // Initialize zoom sync states for both cases
+        initZoomSyncState('case-a');
+        initZoomSyncState('case-b');
         
         // Initialize zoom/pan for all zoom containers
         const zoomContainers = document.querySelectorAll('.zoom-container[data-zoom-enabled]');
         zoomContainers.forEach(container => {
+          const syncKey = container.getAttribute('data-zoom-sync');
           initZoomPanForContainer(
             container,
-            'invivo',
+            syncKey,
             applyZoomTransform,
             applyZoomToGroup
           );

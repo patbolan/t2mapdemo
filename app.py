@@ -250,20 +250,21 @@ def view_invivo():
 
     # For now, just load one case, and we'll use it for both A and B
     case_a_id = '000118'
-    
+    case_a_id = '000400'
+    case_b_id = '000277'
+
     # Load NLLS predictions for all noise levels (0-9)
     nlls_case_a_all = load_invivo_noise_levels(case_a_id, "FIT_NLLS")
+    nlls_case_b_all = load_invivo_noise_levels(case_b_id, "FIT_NLLS")
 
     # Load CNN predictions for all noise levels (0-9)
     cnn_case_a_all = load_invivo_noise_levels(case_a_id, "CNN_IMAGENET")
+    cnn_case_b_all = load_invivo_noise_levels(case_b_id, "CNN_IMAGENET")
 
     # Check if any of the loads failed
-    if nlls_case_a_all[0] is None or cnn_case_a_all[0] is None:
+    if nlls_case_a_all[0] is None or nlls_case_b_all[0] is None or cnn_case_a_all[0] is None or cnn_case_b_all[0] is None:
         abort(404, description="One or more required datasets not found.")
     
-    # Print out keys that have been loaded
-    print(f'Loaded {len([x for x in nlls_case_a_all if x is not None])} NLLS noise levels')
-    print(f'Loaded {len([x for x in cnn_case_a_all if x is not None])} CNN noise levels')
 
     # Don't need the S0 maps - let's remove them to save HTML space
     for noise_level in range(10):
@@ -271,12 +272,16 @@ def view_invivo():
             nlls_case_a_all[noise_level].pop('pred_S0', None)
         if cnn_case_a_all[noise_level] is not None:
             cnn_case_a_all[noise_level].pop('pred_S0', None)
+        if nlls_case_b_all[noise_level] is not None:
+            nlls_case_b_all[noise_level].pop('pred_S0', None)
+        if cnn_case_b_all[noise_level] is not None:
+            cnn_case_b_all[noise_level].pop('pred_S0', None)
 
     return render_template('view_invivo.html',
                           nlls_case_a_all=nlls_case_a_all,
-                          nlls_case_b_all=nlls_case_a_all,  # Using same for B for now
+                          nlls_case_b_all=nlls_case_b_all,  # Using same for B for now
                           cnn_case_a_all=cnn_case_a_all,
-                          cnn_case_b_all=cnn_case_a_all)  # Using same for B for now
+                          cnn_case_b_all=cnn_case_b_all)  # Using same for B for now
 
 
 if __name__ == '__main__':
