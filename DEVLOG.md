@@ -2,6 +2,9 @@
 Completed compare methods. I was planning on swapping in more examples, but for now, this is just a visualization
 So put that off
 Complete the invivo page.
+Got the fundamentals working. Now format and copy
+
+
 
 
 ** Running the server**  
@@ -54,3 +57,5 @@ invivo test data
 
 *** TODO ***
 * Lots of refactoring and code cleanup!
+
+

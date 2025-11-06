@@ -127,24 +127,6 @@ def index():
     return render_template('index.html')
 
 
-@app.route('/compare_methods')
-def compare_methods():
-
-    # Hardwire the case_id for now
-    case_id = '000001'
-    dataset_name = 'synth_imagenet_1k_test'
-    labels = load_images('synth_imagenet_1k_test', case_id, "label")
-    method1_preds = load_images('IMAGENET_TEST_1k', case_id, "prediction", method="FIT_NLLS")
-    method2_preds = load_images('IMAGENET_TEST_1k', case_id, "prediction", method="CNN_IMAGENET")
-
-    # Check if any of the loads failed
-    if labels is None or method1_preds is None or method2_preds is None:
-        abort(404, description="One or more required datasets not found.")
-
-    return render_template('compare_methods.html', labels=labels, method1_preds=method1_preds, method2_preds=method2_preds)
-
-
-
 @app.route('/explore_datasets')
 def explore_datasets():
     # Load all three sample datasets
@@ -213,6 +195,89 @@ def explore_datasets():
                           urand_imageset=urand_imageset,
                           invivo_imageset=invivo_imageset, 
                           TE_vals=TE_vals)
+
+
+@app.route('/compare_methods')
+def compare_methods():
+
+    # Hardwire the case_id for now
+    case_id = '000001'
+    labels = load_images('synth_imagenet_1k_test', case_id, "label")
+    method1_preds = load_images('IMAGENET_TEST_1k', case_id, "prediction", method="FIT_NLLS")
+    method2_preds = load_images('IMAGENET_TEST_1k', case_id, "prediction", method="CNN_IMAGENET")
+
+    # Check if any of the loads failed
+    if labels is None or method1_preds is None or method2_preds is None:
+        abort(404, description="One or more required datasets not found.")
+
+    return render_template('compare_methods.html', labels=labels, method1_preds=method1_preds, method2_preds=method2_preds)
+
+
+def load_invivo_noise_levels(case_id, method):
+    """Load predictions for all noise levels (0-9) for a given case and method.
+    
+    Args:
+        case_id (str): Case identifier (e.g., "000118")
+        method (str): Prediction method (e.g., "FIT_NLLS", "CNN_IMAGENET")
+    
+    Returns:
+        list: List of 10 prediction dictionaries, one for each noise level (0-9)
+    """
+    predictions = []
+    
+    # Loop through all noise levels (0-9)
+    for noise_level in range(10):
+        # Handle noise_level = 0 (no noise suffix) vs noise_level > 0
+        if noise_level == 0:
+            dataset_name = 'INVIVO2D_SET3'
+        else:
+            dataset_name = f'INVIVO2D_SET3_NOISE_{noise_level}'
+        
+        # Load predictions for this noise level
+        preds = load_images(dataset_name, case_id, "prediction", method=method)
+        
+        if preds is None:
+            print(f"Warning: Could not load predictions for {dataset_name}, method {method}, case {case_id}")
+            predictions.append(None)
+        else:
+            predictions.append(preds)
+    
+    return predictions
+
+
+@app.route('/view_invivo')
+def view_invivo():
+
+    # For now, just load one case, and we'll use it for both A and B
+    case_a_id = '000118'
+    
+    # Load NLLS predictions for all noise levels (0-9)
+    nlls_case_a_all = load_invivo_noise_levels(case_a_id, "FIT_NLLS")
+
+    # Load CNN predictions for all noise levels (0-9)
+    cnn_case_a_all = load_invivo_noise_levels(case_a_id, "CNN_IMAGENET")
+
+    # Check if any of the loads failed
+    if nlls_case_a_all[0] is None or cnn_case_a_all[0] is None:
+        abort(404, description="One or more required datasets not found.")
+    
+    # Print out keys that have been loaded
+    print(f'Loaded {len([x for x in nlls_case_a_all if x is not None])} NLLS noise levels')
+    print(f'Loaded {len([x for x in cnn_case_a_all if x is not None])} CNN noise levels')
+
+    # Don't need the S0 maps - let's remove them to save HTML space
+    for noise_level in range(10):
+        if nlls_case_a_all[noise_level] is not None:
+            nlls_case_a_all[noise_level].pop('pred_S0', None)
+        if cnn_case_a_all[noise_level] is not None:
+            cnn_case_a_all[noise_level].pop('pred_S0', None)
+
+    return render_template('view_invivo.html',
+                          nlls_case_a_all=nlls_case_a_all,
+                          nlls_case_b_all=nlls_case_a_all,  # Using same for B for now
+                          cnn_case_a_all=cnn_case_a_all,
+                          cnn_case_b_all=cnn_case_a_all)  # Using same for B for now
+
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

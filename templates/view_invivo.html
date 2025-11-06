@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View In Vivo Data - T2 Map Demo</title>
+    
+    <link rel="stylesheet" href="/static/css/shared.css">
+    
+    <!-- Shared JavaScript -->
+    <script src="{{ url_for('static', filename='js/shared.js') }}"></script>
+    
+    <!-- KaTeX for math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" 
+            onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}], throwOnError: false});"></script>
+    
+    <style>
+      /* Page-specific styles */
+      body { 
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+      h1 { 
+        margin-bottom: 1rem; 
+        color: #333; 
+      }
+      
+      /* Comparison grid layout */
+      .comparison-grid {
+        display: grid;
+        grid-template-columns: auto 1fr 1fr 1fr;
+        gap: 1rem;
+        margin-top: 2rem;
+        align-items: start;
+      }
+      
+      /* Column headers */
+      .column-header {
+        text-align: center;
+        margin-bottom: 0.5rem;
+      }
+      
+      .image-title {
+        margin: 0.5rem 0;
+        font-weight: bold;
+        color: #555;
+      }
+      
+      /* Row headers */
+      .row-header {
+        font-weight: bold;
+        color: var(--accent);
+        padding: 0.5rem;
+        text-align: right;
+        white-space: nowrap;
+        align-self: center;
+      }
+      
+      /* Image cells */
+      .grid-image {
+        text-align: center;
+      }
+      
+      .grid-image img {
+        width: 100%;
+        max-width: var(--parameter-map-size);
+        height: auto;
+      }
+
+      /* Zoom/pan container */
+      .zoom-container {
+        position: relative;
+        width: var(--parameter-map-size);
+        height: var(--parameter-map-size);
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        overflow: hidden;
+        cursor: crosshair;
+        background: #000;
+      }
+
+      .zoom-image {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) scale(1);
+        transform-origin: center center;
+        user-select: none;
+        pointer-events: none;
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        border: none;
+        box-shadow: none;
+      }
+      
+      /* Text column using details-container styling */
+      .grid-details {
+        background: #d1d5db;
+        border-radius: 8px;
+        padding: 1rem;
+        line-height: 1.6;
+        color: #555;
+        font-size: 0.9em;
+      }
+      
+      /* Empty cell for top-left corner */
+      .empty-cell {
+        grid-column: 1;
+        grid-row: 1;
+      }
+      
+      /* Zoom/Pan Instructions */
+      .zoom-instructions {
+        margin-top: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 0.9em;
+        color: #495057;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1.5rem;
+      }
+      
+      .zoom-instructions .control-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      
+      /* Noise level slider controls */
+      .noise-controls {
+        margin: 1.5rem 0;
+        padding: 1rem;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+      }
+      
+      .slider-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+      }
+      
+      .slider-container label {
+        font-weight: bold;
+        color: #555;
+      }
+      
+      .slider-container input[type="range"] {
+        width: 300px;
+        cursor: pointer;
+      }
+      
+      .noise-level-display {
+        font-size: 1.1em;
+        font-weight: bold;
+        color: #333;
+        min-width: 150px;
+        text-align: left;
+      }
+      
+      /* Loading overlay */
+      .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.95);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+        transition: opacity 0.3s ease-out;
+      }
+      
+      .loading-overlay.hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      
+      .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid var(--accent);
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+      
+      .loading-text {
+        margin-top: 1rem;
+        font-size: 1.1em;
+        color: #555;
+        font-weight: 500;
+      }
+      
+      /* Responsive */
+      @media (max-width: 768px) {
+        .comparison-grid {
+          grid-template-columns: 1fr;
+          gap: 1.5rem;
+        }
+        
+        .column-header,
+        .row-header {
+          text-align: left;
+        }
+        
+        .empty-cell {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="loading-overlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading parameter maps...</div>
+    </div>
+    
+    <a href="/" class="back-link">← Back to Home</a>
+    
+    <h1>View In Vivo Data</h1>
+    
+    <div class="info-box">
+      <p>These are real breast MRI scans showing $T_2$ parameter maps estimated from in vivo data. 
+        Case A represents a benign lesion, while Case B shows a malignant tumor. Both cases use the same 
+        estimation methods: Non-Linear Least Squares (NLLS) fitting and Convolutional Neural Network (CNN) prediction.</p>
+    </div>
+    
+    <div class="tab-card">
+      <div class="tab-description">
+        <p>Compare the parameter maps from two different estimation methods applied to real patient data. 
+          The images show $T_2$ relaxation time maps for two clinical cases with different diagnoses. 
+          You can zoom in (right mouse button) and pan (middle mouse) to examine details in the parameter maps.</p>
+      </div>
+      
+      <!-- Noise Level Controls -->
+      <div class="noise-controls">
+        <div class="slider-container">
+          <label for="noise-level">Noise Level:</label>
+          <input type="range" id="noise-level" min="0" max="9" value="0" step="1" oninput="updateNoiseLevel()">
+          <span id="noise-level-display" class="noise-level-display">0 (No added noise)</span>
+        </div>
+      </div>
+      
+      <div class="comparison-grid">
+        <!-- Empty top-left corner -->
+        <div class="empty-cell"></div>
+        
+        <!-- Column headers -->
+        <div class="column-header">
+          <div class="image-title">
+            <div style="font-size: 1.1em;">Case A - Benign</div>
+          </div>
+        </div>
+        <div class="column-header">
+          <div class="image-title">
+            <div style="font-size: 1.1em;">Case B - Malignant</div>
+          </div>
+        </div>
+        <div class="column-header">
+          <!-- Empty header for details column -->
+        </div>
+        
+        <!-- Row 1: NLLS Fit -->
+        <div class="row-header">NLLS Fit</div>
+        <div class="grid-image" id="nlls-casea-container">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
+            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+A+NLLS" alt="Case A NLLS">
+          </div>
+        </div>
+        <div class="grid-image" id="nlls-caseb-container">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
+            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+B+NLLS" alt="Case B NLLS">
+          </div>
+        </div>
+        <div class="grid-details">
+          <p>NLLS fitting provides the standard approach for parameter estimation, performing pixel-by-pixel 
+            curve fitting using a Non-Linear Least Squares algorithm. Note the noise characteristics 
+            in regions with varying signal-to-noise ratios.</p>
+        </div>
+        
+        <!-- Row 2: CNN -->
+        <div class="row-header">CNN</div>
+        <div class="grid-image" id="cnn-casea-container">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
+            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+A+CNN" alt="Case A CNN">
+          </div>
+        </div>
+        <div class="grid-image" id="cnn-caseb-container">
+          <div class="zoom-container" data-zoom-enabled data-zoom-sync="invivo">
+            <img class="zoom-image" src="https://via.placeholder.com/256x256/cccccc/666666?text=Case+B+CNN" alt="Case B CNN">
+          </div>
+        </div>
+        <div class="grid-details">
+          <p>The CNN approach was trained on synthetic data and applied to these real patient scans. 
+            The CNN generally produces smoother parameter maps with reduced noise compared to NLLS, 
+            though some fine details may be smoothed out in the process.</p>
+        </div>
+      </div>
+      
+      <!-- Zoom/Pan Instructions -->
+      <div class="zoom-instructions">
+        <strong>Image Controls:</strong>
+        <span class="control-item"><strong>Right-click + drag ↕</strong> Zoom in/out</span>
+        <span class="control-item"><strong>Middle-click + drag</strong> Pan around</span>
+        <span class="control-item"><strong>Double-click</strong> Reset zoom/pan</span>
+      </div>
+    </div>
+    
+    <!-- Data injection - arrays of 10 noise levels (0-9) -->
+    <script id="nlls-casea-data" type="application/json">{{ nlls_case_a_all | tojson }}</script>
+    <script id="nlls-caseb-data" type="application/json">{{ nlls_case_b_all | tojson }}</script>
+    <script id="cnn-casea-data" type="application/json">{{ cnn_case_a_all | tojson }}</script>
+    <script id="cnn-caseb-data" type="application/json">{{ cnn_case_b_all | tojson }}</script>
+    
+    <script>
+      // Load data from backend - arrays of 10 noise levels (0-9)
+      const nlls_case_a_all = JSON.parse(document.getElementById('nlls-casea-data').textContent);
+      const nlls_case_b_all = JSON.parse(document.getElementById('nlls-caseb-data').textContent);
+      const cnn_case_a_all = JSON.parse(document.getElementById('cnn-casea-data').textContent);
+      const cnn_case_b_all = JSON.parse(document.getElementById('cnn-caseb-data').textContent);
+      
+      // Colormap settings
+      const tColormap = 'viridis';
+      const tMin = 0, tMax = 2;
+      
+      // Function to update images based on noise level
+      function updateNoiseLevel() {
+        const noiseLevel = parseInt(document.getElementById('noise-level').value);
+        const noiseLevelDisplay = document.getElementById('noise-level-display');
+        
+        // Update noise level display text
+        if (noiseLevel === 0) {
+          noiseLevelDisplay.textContent = '0 (No added noise)';
+        } else {
+          noiseLevelDisplay.textContent = noiseLevel.toString();
+        }
+        
+        // Get data for current noise level
+        const nlls_case_a = nlls_case_a_all[noiseLevel];
+        const nlls_case_b = nlls_case_b_all[noiseLevel];
+        const cnn_case_a = cnn_case_a_all[noiseLevel];
+        const cnn_case_b = cnn_case_b_all[noiseLevel];
+        
+        // Render images with new noise level
+        if (nlls_case_a && nlls_case_b && cnn_case_a && cnn_case_b) {
+          renderImage('nlls-casea-container', nlls_case_a.pred_T, tColormap, tMin, tMax, 'NLLS Case A');
+          renderImage('nlls-caseb-container', nlls_case_b.pred_T, tColormap, tMin, tMax, 'NLLS Case B');
+          renderImage('cnn-casea-container', cnn_case_a.pred_T, tColormap, tMin, tMax, 'CNN Case A');
+          renderImage('cnn-caseb-container', cnn_case_b.pred_T, tColormap, tMin, tMax, 'CNN Case B');
+        } else {
+          console.error(`Data not available for noise level ${noiseLevel}`);
+        }
+      }
+      
+      // Handle mouse wheel events on images to change noise level
+      function handleWheel(event) {
+        event.preventDefault();
+        const slider = document.getElementById('noise-level');
+        let currentLevel = parseInt(slider.value);
+        
+        // Wheel up (positive deltaY) increases noise level
+        // Wheel down (negative deltaY) decreases noise level
+        if (event.deltaY > 0) {
+          // Wheel up - increase noise level
+          currentLevel = Math.min(9, currentLevel + 1);
+        } else {
+          // Wheel down - decrease noise level
+          currentLevel = Math.max(0, currentLevel - 1);
+        }
+        
+        slider.value = currentLevel;
+        updateNoiseLevel();
+      }
+      
+      // Initialize zoom/pan for all containers on page load
+      document.addEventListener('DOMContentLoaded', function() {
+        // Render initial images (noise level 0)
+        updateNoiseLevel();
+        
+        // Initialize zoom sync state
+        initZoomSyncState('invivo');
+        
+        // Initialize zoom/pan for all zoom containers
+        const zoomContainers = document.querySelectorAll('.zoom-container[data-zoom-enabled]');
+        zoomContainers.forEach(container => {
+          initZoomPanForContainer(
+            container,
+            'invivo',
+            applyZoomTransform,
+            applyZoomToGroup
+          );
+        });
+        
+        // Add wheel event listeners to the comparison grid
+        const comparisonGrid = document.querySelector('.comparison-grid');
+        if (comparisonGrid) {
+          comparisonGrid.addEventListener('wheel', handleWheel, { passive: false });
+        }
+        
+        // Render math with KaTeX
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        }
+        
+        // Hide loading overlay after everything is loaded
+        setTimeout(() => {
+          const loadingOverlay = document.getElementById('loading-overlay');
+          if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+            // Remove from DOM after transition completes
+            setTimeout(() => {
+              loadingOverlay.style.display = 'none';
+            }, 300);
+          }
+        }, 100);
+      });
+      
+      // Function to render an image in a container
+      function renderImage(containerId, imageData, colormap, minVal, maxVal, altText) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        
+        const zoomContainer = container.querySelector('.zoom-container');
+        const img = zoomContainer.querySelector('.zoom-image');
+        
+        if (img && imageData) {
+          img.src = arrayToImageSrc(imageData, colormap, minVal, maxVal);
+          img.alt = altText;
+        }
+      }
+      
+      // Apply zoom transform to image containers
+      function applyZoomTransform(container) {
+        if (!container) return;
+        const img = container.querySelector('.zoom-image');
+        const state = container._zoomState;
+        if (!img || !state) return;
+        const shared = state.sharedState || { scale: 1, translateX: 0, translateY: 0 };
+        img.style.transform = `translate(-50%, -50%) translate(${shared.translateX}px, ${shared.translateY}px) scale(${shared.scale})`;
+      }
+
+      // Apply zoom to all containers in sync group
+      function applyZoomToGroup(syncKey) {
+        if (!syncKey) return;
+        const containers = document.querySelectorAll(`.zoom-container[data-zoom-sync="${syncKey}"]`);
+        containers.forEach(container => {
+          if (container._zoomState) {
+            applyZoomTransform(container);
+          }
+        });
+      }
+        // Initialize zoom sync state
+        initZoomSyncState('invivo');
+        
+        // Initialize zoom/pan for all zoom containers
+        const zoomContainers = document.querySelectorAll('.zoom-container[data-zoom-enabled]');
+        zoomContainers.forEach(container => {
+          initZoomPanForContainer(
+            container,
+            'invivo',
+            applyZoomTransform,
+            applyZoomToGroup
+          );
+        });
+        
+        // Render math with KaTeX
+        if (typeof renderMathInElement !== 'undefined') {
+          renderMathInElement(document.body, {
+            delimiters: [
+              {left: '$$', right: '$$', display: true},
+              {left: '$', right: '$', display: false}
+            ],
+            throwOnError: false
+          });
+        }
+    
+      
+      // Apply zoom transform to image containers
+      function applyZoomTransform(container) {
+        if (!container) return;
+        const img = container.querySelector('.zoom-image');
+        const state = container._zoomState;
+        if (!img || !state) return;
+        const shared = state.sharedState || { scale: 1, translateX: 0, translateY: 0 };
+        img.style.transform = `translate(-50%, -50%) translate(${shared.translateX}px, ${shared.translateY}px) scale(${shared.scale})`;
+      }
+
+      // Apply zoom to all containers in sync group
+      function applyZoomToGroup(syncKey) {
+        if (!syncKey) return;
+        const containers = document.querySelectorAll(`.zoom-container[data-zoom-sync="${syncKey}"]`);
+        containers.forEach(container => {
+          if (container._zoomState) {
+            applyZoomTransform(container);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>
