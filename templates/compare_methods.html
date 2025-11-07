@@ -16,125 +16,6 @@
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     
     <style>
-      /* Page-specific styles */
-      body { 
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-      }
-      h1 { 
-        margin-bottom: 1rem; 
-        color: #333; 
-      }
-      
-      /* Comparison grid layout */
-      .comparison-grid {
-        display: grid;
-        grid-template-columns: auto 1fr 1fr 1fr;
-        gap: 1rem;
-        margin-top: 2rem;
-        align-items: start;
-      }
-      
-      /* Column headers */
-      .column-header {
-        text-align: center;
-        margin-bottom: 0.5rem;
-      }
-      
-      .image-title {
-        margin: 0.5rem 0;
-        font-weight: bold;
-        color: #555;
-      }
-      
-      /* Row headers */
-      .row-header {
-        font-weight: bold;
-        color: var(--accent);
-        padding: 0.5rem;
-        text-align: right;
-        white-space: nowrap;
-        align-self: center;
-      }
-      
-      /* Image cells */
-      .grid-image {
-        text-align: center;
-      }
-      
-      .grid-image img {
-        width: 100%;
-        max-width: var(--parameter-map-size);
-        height: auto;
-      }
-
-      /* Zoom/pan container for static tab */
-      .zoom-container {
-        position: relative;
-        width: var(--parameter-map-size);
-        height: var(--parameter-map-size);
-        margin: 0 auto;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        overflow: hidden;
-        cursor: crosshair;
-        background: #000;
-      }
-
-      .zoom-image {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) scale(1);
-        transform-origin: center center;
-        user-select: none;
-        pointer-events: none;
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        border: none;
-        box-shadow: none;
-      }
-      
-      /* Text column using details-container styling */
-      .grid-details {
-        background: #d1d5db;
-        border-radius: 8px;
-        padding: 1rem;
-        line-height: 1.6;
-        color: #555;
-        font-size: 0.9em;
-      }
-      
-      /* Empty cell for top-left corner */
-      .empty-cell {
-        grid-column: 1;
-        grid-row: 1;
-      }
-      
-      /* Zoom/Pan Instructions */
-      .zoom-instructions {
-        margin-top: 2rem;
-        padding: 1rem;
-        background: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        font-size: 0.9em;
-        color: #495057;
-        display: flex;
-        flex-wrap: wrap;
-        align-items: center;
-        gap: 1.5rem;
-      }
-      
-      .zoom-instructions .control-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      
       /* Toggle control styles */
       .toggle-controls {
         margin: 1rem 0 0.5rem 0;
@@ -335,26 +216,9 @@
         pointer-events: none;
         z-index: 5;
       }
-      
-      /* Responsive */
-      @media (max-width: 768px) {
-        .comparison-grid {
-          grid-template-columns: 1fr;
-          gap: 1.5rem;
-        }
-        
-        .column-header,
-        .row-header {
-          text-align: left;
-        }
-        
-        .empty-cell {
-          display: none;
-        }
-      }
     </style>
   </head>
-  <body>
+  <body class="subpage">
     <a href="/" class="back-link">← Back to Home</a>
     
     <h1>Compare Methods</h1>
