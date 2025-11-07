@@ -135,6 +135,58 @@
         gap: 0.5rem;
       }
       
+      /* Toggle control styles */
+      .toggle-controls {
+        margin: 1rem 0 0.5rem 0;
+        padding: 0.25rem 1rem;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        height: 34px;
+        display: none; /* Hidden by default, shown only in toggle tab */
+      }
+      
+      .toggle-controls.active {
+        display: block;
+      }
+      
+      .toggle-control-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        height: 100%;
+      }
+      
+      .toggle-control-container label {
+        font-weight: bold;
+        color: #555;
+      }
+      
+      .toggle-switch {
+        display: inline-flex;
+        background: #e9ecef;
+        border-radius: 20px;
+        padding: 3px;
+        cursor: pointer;
+        user-select: none;
+      }
+      
+      .toggle-option {
+        padding: 4px 16px;
+        border-radius: 17px;
+        font-size: 0.9em;
+        font-weight: 500;
+        transition: none; /* Instant transition */
+        color: #666;
+      }
+      
+      .toggle-option.active {
+        background: var(--accent);
+        color: white;
+        box-shadow: 0 2px 4px rgba(0, 122, 204, 0.3);
+      }
+      
       /* Hide row 1 (ground truth) when needed */
       .row1-hidden {
         display: none;
@@ -328,6 +380,17 @@
             <p id="tab-description"><!-- Dynamic description --></p>
           </div>
           
+          <!-- Toggle control (only shown in toggle tab) -->
+          <div class="toggle-controls" id="toggle-controls">
+            <div class="toggle-control-container">
+              <label>Toggle View:</label>
+              <div class="toggle-switch" id="toggle-switch">
+                <div class="toggle-option active" data-state="prediction">Prediction</div>
+                <div class="toggle-option" data-state="groundtruth">Ground Truth</div>
+              </div>
+            </div>
+          </div>
+          
           <div class="comparison-grid">
             <!-- Empty top-left corner -->
             <div class="empty-cell"></div>
@@ -505,6 +568,18 @@
         const toggleControl = document.getElementById('toggle-control');
         if (toggleControl) {
           toggleControl.style.display = (tabKey === 'toggle') ? 'flex' : 'none';
+        }
+        
+        // Show/hide toggle controls UI
+        const toggleControls = document.getElementById('toggle-controls');
+        if (toggleControls) {
+          if (tabKey === 'toggle') {
+            toggleControls.classList.add('active');
+            // Reset toggle state to prediction
+            updateToggleControlDisplay('prediction');
+          } else {
+            toggleControls.classList.remove('active');
+          }
         }
         
         let s0Colormap = 'gray';
@@ -744,17 +819,37 @@
         });
       }
       
+      // Function to update toggle control display
+      function updateToggleControlDisplay(state) {
+        const toggleOptions = document.querySelectorAll('.toggle-option');
+        
+        toggleOptions.forEach(option => {
+          if (option.getAttribute('data-state') === state) {
+            option.classList.add('active');
+          } else {
+            option.classList.remove('active');
+          }
+        });
+      }
+      
       // Function to toggle all images
       function toggleAllImages() {
         const allContainers = document.querySelectorAll('.toggle-container');
         
+        // Determine new state from first container
+        let newState = 'prediction';
+        if (allContainers.length > 0) {
+          const firstContainer = allContainers[0];
+          const currentState = firstContainer.getAttribute('data-toggle-state');
+          newState = (currentState === 'prediction') ? 'groundtruth' : 'prediction';
+        }
+        
         allContainers.forEach(cont => {
-          const currentState = cont.getAttribute('data-toggle-state');
           const img = cont.querySelector('img');
           const label = cont.querySelector('.toggle-label');
           const methodName = img.getAttribute('data-method-name');
           
-          if (currentState === 'prediction') {
+          if (newState === 'groundtruth') {
             // Switch to ground truth
             cont.setAttribute('data-toggle-state', 'groundtruth');
             img.src = img.getAttribute('data-groundtruth-src');
@@ -766,6 +861,9 @@
             label.textContent = methodName;
           }
         });
+        
+        // Update toggle control display
+        updateToggleControlDisplay(newState);
       }
       
       // Initialize toggle wheel events
@@ -915,6 +1013,33 @@
           
           // Update content
           updateContent(tabName);
+        });
+      });
+      
+      // Toggle control click handlers
+      document.querySelectorAll('.toggle-option').forEach(option => {
+        option.addEventListener('click', () => {
+          const state = option.getAttribute('data-state');
+          
+          // Update all toggle images to match the clicked state
+          const allContainers = document.querySelectorAll('.toggle-container');
+          allContainers.forEach(cont => {
+            const img = cont.querySelector('img');
+            const label = cont.querySelector('.toggle-label');
+            const methodName = img.getAttribute('data-method-name');
+            
+            cont.setAttribute('data-toggle-state', state);
+            if (state === 'groundtruth') {
+              img.src = img.getAttribute('data-groundtruth-src');
+              label.textContent = 'Ground Truth';
+            } else {
+              img.src = img.getAttribute('data-prediction-src');
+              label.textContent = methodName;
+            }
+          });
+          
+          // Update toggle control display
+          updateToggleControlDisplay(state);
         });
       });
     </script>
