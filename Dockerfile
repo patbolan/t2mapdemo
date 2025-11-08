@@ -18,4 +18,4 @@ COPY . .
 EXPOSE 5000
 
 # Run Gunicorn (adjust module:callable and workers as needed)
-CMD ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "4", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
+CMD ["gunicorn", "--bind", "0.0.0.0:8080", "--workers", "4", "--access-logfile", "-", "--error-logfile", "-", "wsgi:app"]
