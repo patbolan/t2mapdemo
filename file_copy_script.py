@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+File Copy Script for T2Map Demo
+
+I have the full set of infered data files in a separate folder (prostate_t2map_modified/predictions/).
+This demo won't have access to that folder, so I will copy over files as needed. 
+This script is a helper to check the files, and then copy them  over to the demo folder structure.
+
+"""
+
 import os
 import shutil
 import nibabel as nib

@@ -40,7 +40,7 @@ htmlcov/
 *.code-workspace
 
 # Development/testing scripts
-testImages.py
+file_copy_script.py
 
 # Docker
 Dockerfile

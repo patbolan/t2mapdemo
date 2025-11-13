@@ -1,9 +1,5 @@
 from flask import Flask, render_template, abort, request
-import platform
-import time
-import shutil
 import os
-import socket
 import nibabel as nib
 import matplotlib
 import matplotlib.pyplot as plt
@@ -11,19 +7,16 @@ import numpy as np
 import io
 import base64
 import glob
-import psutil
 
 app = Flask(__name__)
-start_time = time.time()
 
 
 
 
 def load_images(dataset, case_id, type, method=None):
     """
-    More general image loading function that will eventually replace load_images().
-    This version returns the images as base64 encoded PNG strings for direct embedding in HTML.
-    This code handles the rotations for the prostate data
+    Load and return medical imaging data as JSON-serializable dictionary.
+    This code handles the rotations for the prostate data.
     
     Args:
         dataset (str): Dataset name (e.g., "IMAGENET_TEST_1k", "INVIVO2D_SET3")
@@ -35,7 +28,10 @@ def load_images(dataset, case_id, type, method=None):
         method (str, optional): Prediction method name (e.g., "FIT_NLLS"). Required when type="prediction"
     
     Returns:
-        dict: Dictionary containing the loaded images as ?????
+        dict: Dictionary containing the loaded images as lists (converted from numpy arrays).
+              Keys depend on type: 'image_0', 'image_1', ... for image_series;
+              'label_S0', 'label_T' for labels; 'pred_S0', 'pred_T' for predictions.
+              Returns None if files are not found.
     """
 
     # File prefixes vary by dataset type
